@@ -292,6 +292,9 @@ const XrEventDataBaseHeader *OpenXRPlugin::TryReadNextEvent() {
 void
 OpenXRPlugin::HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stateChangedEvent, bool* exitRenderLoop, bool* requestRestart) {
 
+    const XrSessionState oldState = _sessionState;
+    _sessionState = stateChangedEvent.state;
+
     __android_log_print(ANDROID_LOG_INFO, "Androx Kernel3D","XrEventDataSessionStateChanged: state %d->%d session=%lld time=%lld", oldState,
                                      _sessionState, stateChangedEvent.session, stateChangedEvent.time);
 
@@ -342,6 +345,14 @@ OpenXRPlugin::HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stat
         default:
             break;
     }
+}
+
+void OpenXRPlugin::PollActions() {
+    //TODO Enable Actions and poll
+}
+
+void OpenXRPlugin::RenderFrame() {
+    //TODO RENDER FRAME
 }
 
 

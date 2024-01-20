@@ -110,19 +110,26 @@ void Engine::engineMain() {
         //}*/
 
         openXrPlugin->PollEvents(&exitRenderLoop, &requestRestart);
-        /*if (exitRenderLoop) {
-            ANativeActivity_finish(app->activity);
+        if (exitRenderLoop) {
+            jclass activityClass = _jniEngineEnv->GetObjectClass(_activity);
+
+            // Obtenez la méthode finish
+            jmethodID finishMethod = _jniEngineEnv->GetMethodID(activityClass, "finish", "()V");
+
+            // Appelez la méthode finish sur l'objet de l'activité
+            _jniEngineEnv->CallVoidMethod(_activity, finishMethod);
+
             continue;
         }
 
-        if (!program->IsSessionRunning()) {
+        if (!openXrPlugin->IsSessionRunning()) {
             // Throttle loop since xrWaitFrame won't be called.
             std::this_thread::sleep_for(std::chrono::milliseconds(250));
             continue;
         }
 
-        program->PollActions();
-        program->RenderFrame();*/
+        openXrPlugin->PollActions();
+        openXrPlugin->RenderFrame();
     }
 
 

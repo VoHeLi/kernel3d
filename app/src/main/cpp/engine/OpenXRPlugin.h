@@ -21,6 +21,10 @@ public:
 
     void PollEvents(bool *pBoolean, bool *pBoolean1);
 
+    void PollActions();
+
+    void RenderFrame();
+
 private:
     struct Swapchain {
         XrSwapchain handle;
