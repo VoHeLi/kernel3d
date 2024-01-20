@@ -1,6 +1,7 @@
 #include "GraphicsBackendManager.h"
 
 #include <android/log.h>
+#include <vector>
 
 #include "gfxwrapper_opengl.h"
 
@@ -85,13 +86,13 @@ XrResult GraphicsBackendManager::InitializeDevice(XrInstance instance, XrSystemI
 }
 
 const XrBaseInStructure* GraphicsBackendManager::GetGraphicsBinding() {
-    XrGraphicsBindingOpenGLESAndroidKHR* bindings = (XrGraphicsBindingOpenGLESAndroidKHR*) malloc(49); //MAGIC NUMBER, TODO UNDERSTAND WHY MONADO USES EXTRA SPACE
+    XrGraphicsBindingOpenGLESAndroidKHR* bindings = (XrGraphicsBindingOpenGLESAndroidKHR*) malloc(101); //MAGIC NUMBER 49, TODO UNDERSTAND WHY MONADO USES EXTRA SPACE
     bindings->type = XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR;
     bindings->display = _nativeDisplay;
     bindings->config = _nativeConfig;
     bindings->context = _nativeContext;
 
-    for(int i = 0; i < 49; i++){
+    for(int i = 0; i < 10; i++){
         char data = ((char*)bindings)[i];
         __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Dump %d : %p", i, data);
     }
@@ -99,6 +100,46 @@ const XrBaseInStructure* GraphicsBackendManager::GetGraphicsBinding() {
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "TEST %U : %p, %p, %p", sizeof(XrGraphicsBindingOpenGLESAndroidKHR), _nativeDisplay, _nativeContext, _nativeConfig);
 
     return (XrBaseInStructure*)bindings; //debug
+}
+
+int64_t GraphicsBackendManager::SelectColorSwapchainFormat(std::vector<int64_t> runtimeFormats) {
+    std::vector<int64_t> supportedColorSwapchainFormats{GL_RGBA8, GL_RGBA8_SNORM};
+
+    // In OpenGLES 3.0+, the R, G, and B values after blending are converted into the non-linear
+    // sRGB automatically.
+    if (_contextApiMajorVersion >= 3) {
+        supportedColorSwapchainFormats.push_back(GL_SRGB8_ALPHA8);
+    }
+
+    auto swapchainFormatIt = std::find_first_of(runtimeFormats.begin(), runtimeFormats.end(),
+                                                supportedColorSwapchainFormats.begin(), supportedColorSwapchainFormats.end());
+    if (swapchainFormatIt == runtimeFormats.end()) {
+        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "No runtime swapchain format supported for color swapchain");
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
+
+    return *swapchainFormatIt;
+}
+
+uint32_t
+GraphicsBackendManager::GetSupportedSwapchainSampleCount(const XrViewConfigurationView &view) {
+    return 1;
+}
+
+std::vector<XrSwapchainImageBaseHeader *>
+GraphicsBackendManager::AllocateSwapchainImageStructs(uint32_t capacity, XrSwapchainCreateInfo info) {
+    // Allocate and initialize the buffer of image structs (must be sequential in memory for xrEnumerateSwapchainImages).
+    // Return back an array of pointers to each swapchain image struct so the consumer doesn't need to know the type/size.
+    std::vector<XrSwapchainImageOpenGLESKHR> swapchainImageBuffer(capacity, {XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR});
+    std::vector<XrSwapchainImageBaseHeader*> swapchainImageBase;
+    for (XrSwapchainImageOpenGLESKHR& image : swapchainImageBuffer) {
+        swapchainImageBase.push_back(reinterpret_cast<XrSwapchainImageBaseHeader*>(&image));
+    }
+
+    // Keep the buffer alive by moving it into the list of buffers.
+    _swapchainImageBuffers.push_back(std::move(swapchainImageBuffer));
+
+    return swapchainImageBase;
 }
 
 

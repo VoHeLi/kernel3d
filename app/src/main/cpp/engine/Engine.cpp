@@ -87,9 +87,9 @@ void Engine::engineMain() {
 
     openXrPlugin->InitializeDevice();
     openXrPlugin->InitializeSession();
-    /*program->CreateSwapchains();
+    openXrPlugin->CreateSwapchains();
 
-    while (app->destroyRequested == 0) {
+    /*while (app->destroyRequested == 0) {
         // Read all pending events.
         for (;;) {
             int events;
@@ -123,6 +123,7 @@ void Engine::engineMain() {
         program->PollActions();
         program->RenderFrame();
     }*/
+
 
     delete graphicsBackendManager;
     delete openXrPlugin;

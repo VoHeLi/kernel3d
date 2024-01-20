@@ -6,6 +6,7 @@
 #include <GLES3/gl32.h>
 
 #include <string>
+#include <list>
 
 class GraphicsBackendManager {
 public:
@@ -13,6 +14,12 @@ public:
     ~GraphicsBackendManager();
     XrResult InitializeDevice(XrInstance instance, XrSystemId systemId);
     const XrBaseInStructure* GetGraphicsBinding();
+    int64_t SelectColorSwapchainFormat(std::vector<int64_t> runtimeFormats);
+
+    uint32_t GetSupportedSwapchainSampleCount(const XrViewConfigurationView &view);
+
+    std::vector<XrSwapchainImageBaseHeader *>
+    AllocateSwapchainImageStructs(uint32_t i, XrSwapchainCreateInfo info);
 
 private:
     ANativeWindow* _nativeWindow;
@@ -22,4 +29,6 @@ private:
     EGLConfig _nativeConfig;
     GLint _contextApiMajorVersion;
     GLuint _swapchainFramebuffer;
+    std::list<std::vector<XrSwapchainImageOpenGLESKHR>> _swapchainImageBuffers;
+
 };
