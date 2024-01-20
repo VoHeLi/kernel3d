@@ -7,6 +7,7 @@
 
 #include <string>
 #include <list>
+#include <map>
 
 class GraphicsBackendManager {
 public:
@@ -21,6 +22,8 @@ public:
     std::vector<XrSwapchainImageBaseHeader *>
     AllocateSwapchainImageStructs(uint32_t i, XrSwapchainCreateInfo info);
 
+    void RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat);
+
 private:
     ANativeWindow* _nativeWindow;
     EGLDisplay _nativeDisplay;
@@ -30,5 +33,7 @@ private:
     GLint _contextApiMajorVersion;
     GLuint _swapchainFramebuffer;
     std::list<std::vector<XrSwapchainImageOpenGLESKHR>> _swapchainImageBuffers;
+    std::map<uint32_t, uint32_t> _colorToDepthMap;
 
+    const uint32_t GetDepthTexture(const uint32_t colorTexture);
 };

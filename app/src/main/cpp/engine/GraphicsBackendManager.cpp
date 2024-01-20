@@ -142,6 +142,68 @@ GraphicsBackendManager::AllocateSwapchainImageStructs(uint32_t capacity, XrSwapc
     return swapchainImageBase;
 }
 
+void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat) {
+    //CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
+    UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
+
+    glBindFramebuffer(GL_FRAMEBUFFER, _swapchainFramebuffer);
+
+    const uint32_t colorTexture = reinterpret_cast<const XrSwapchainImageOpenGLESKHR*>(swapchainImage)->image;
+
+    glViewport(static_cast<GLint>(layerView.subImage.imageRect.offset.x),
+               static_cast<GLint>(layerView.subImage.imageRect.offset.y),
+               static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
+               static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
+
+    glFrontFace(GL_CW);
+    glCullFace(GL_BACK);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+
+    const uint32_t depthTexture = GetDepthTexture(colorTexture);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+
+    // Clear swapchain and depth buffer.
+    glClearColor(1.0f, 1.0f, 1.0f, 0.5f);
+    glClearDepthf(1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    //TODO RENDER REAL Objects
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+const uint32_t GraphicsBackendManager::GetDepthTexture(const uint32_t colorTexture) {
+    // If a depth-stencil view has already been created for this back-buffer, use it.
+    auto depthBufferIt = _colorToDepthMap.find(colorTexture);
+    if (depthBufferIt != _colorToDepthMap.end()) {
+        return depthBufferIt->second;
+    }
+
+    // This back-buffer has no corresponding depth-stencil texture, so create one with matching dimensions.
+
+    GLint width;
+    GLint height;
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+
+    uint32_t depthTexture;
+    glGenTextures(1, &depthTexture);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+
+    _colorToDepthMap.insert(std::make_pair(colorTexture, depthTexture));
+
+    return depthTexture;
+}
+
 
 
 /*// Initialize the gl extensions. Note we have to open a window.

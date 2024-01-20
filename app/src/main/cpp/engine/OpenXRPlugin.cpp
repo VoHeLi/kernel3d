@@ -101,10 +101,26 @@ XrResult OpenXRPlugin::InitializeSession() {
     InitializeActions();
     CreateVisualizedSpaces();*/ //TODO Implement Space
 
-    /*{
-        XrReferenceSpaceCreateInfo referenceSpaceCreateInfo = GetXrReferenceSpaceCreateInfo(m_options->AppSpace);
-        CHECK_XRCMD(xrCreateReferenceSpace(m_session, &referenceSpaceCreateInfo, &m_appSpace));
-    }*/
+    {
+        XrReferenceSpaceCreateInfo referenceSpaceCreateInfo =
+                {XR_TYPE_REFERENCE_SPACE_CREATE_INFO,
+                 nullptr,
+                XR_REFERENCE_SPACE_TYPE_LOCAL,
+                 {
+                         {
+                             0.0f,0.0f,0.0f,1.0f
+                         },
+                         {
+                             0.0f,0.0f,0.0f
+                         }
+                 }
+                };
+        result = xrCreateReferenceSpace(_session, &referenceSpaceCreateInfo, &_appSpace);
+
+        if(result != XR_SUCCESS){
+            __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "xrCreateReferenceSpace %d", result);
+        }
+    }
 
     return result;
 }
@@ -326,7 +342,7 @@ OpenXRPlugin::HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stat
             _sessionRunning = false;
             XrResult result = xrEndSession(_session);
             if(result < XR_SUCCESS){
-                __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrBeginSession not ready ! : %d", result);
+                __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrEndSession not ready ! : %d", result);
             }
             break;
         }
@@ -352,7 +368,118 @@ void OpenXRPlugin::PollActions() {
 }
 
 void OpenXRPlugin::RenderFrame() {
-    //TODO RENDER FRAME
+    XrFrameWaitInfo frameWaitInfo{XR_TYPE_FRAME_WAIT_INFO};
+    XrFrameState frameState{XR_TYPE_FRAME_STATE};
+    XrResult result = xrWaitFrame(_session, &frameWaitInfo, &frameState);
+    if(result < XR_SUCCESS){
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitFrame ! : %d", result);
+    }
+
+    XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
+    result = xrBeginFrame(_session, &frameBeginInfo);
+    if(result < XR_SUCCESS){
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitFrame ! : %d", result);
+    }
+
+    std::vector<XrCompositionLayerBaseHeader*> layers;
+    XrCompositionLayerProjection layer{XR_TYPE_COMPOSITION_LAYER_PROJECTION};
+    std::vector<XrCompositionLayerProjectionView> projectionLayerViews;
+    if (frameState.shouldRender == XR_TRUE) {
+        if (RenderLayer(frameState.predictedDisplayTime, projectionLayerViews, layer)) {
+            layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&layer));
+        }
+    }
+
+    XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
+    frameEndInfo.displayTime = frameState.predictedDisplayTime;
+    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND; //TODO CHANGE BLEND MODE
+    frameEndInfo.layerCount = (uint32_t)layers.size();
+    frameEndInfo.layers = layers.data();
+    result = xrEndFrame(_session, &frameEndInfo);
+    if(result < XR_SUCCESS){
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitFrame ! : %d", result);
+    }
+}
+
+bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompositionLayerProjectionView>& projectionLayerViews,
+                 XrCompositionLayerProjection& layer) {
+    XrResult res;
+
+    XrViewState viewState{XR_TYPE_VIEW_STATE};
+    uint32_t viewCapacityInput = (uint32_t)_views.size();
+    uint32_t viewCountOutput;
+
+    XrViewLocateInfo viewLocateInfo{XR_TYPE_VIEW_LOCATE_INFO};
+    viewLocateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    viewLocateInfo.displayTime = predictedDisplayTime;
+    viewLocateInfo.space = _appSpace; //TODO app space _appSpace
+
+    res = xrLocateViews(_session, &viewLocateInfo, &viewState, viewCapacityInput, &viewCountOutput, _views.data());
+    if(res< XR_SUCCESS){
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrLocateViews : %d", res);
+    }
+    if ((viewState.viewStateFlags & XR_VIEW_STATE_POSITION_VALID_BIT) == 0 ||
+        (viewState.viewStateFlags & XR_VIEW_STATE_ORIENTATION_VALID_BIT) == 0) {
+        return false;  // There is no valid tracking poses for the views.
+    }
+
+    bool ok = (viewCountOutput == viewCapacityInput)
+    && (viewCountOutput == _configViews.size())
+    && (viewCountOutput == _swapchains.size());
+
+    if(!ok){
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","Size error when renderig...");
+    }
+
+    projectionLayerViews.resize(viewCountOutput);
+
+    //TODO ADVANCED RENDERING
+
+    // Render view to the appropriate part of the swapchain image.
+    for (uint32_t i = 0; i < viewCountOutput; i++) {
+        // Each view has a separate swapchain which is acquired, rendered to, and released.
+        const Swapchain viewSwapchain = _swapchains[i];
+
+        XrSwapchainImageAcquireInfo acquireInfo{XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+
+        uint32_t swapchainImageIndex;
+        res = xrAcquireSwapchainImage(viewSwapchain.handle, &acquireInfo, &swapchainImageIndex);
+        if(res < XR_SUCCESS){
+            __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrAcquireSwapchainImage : %d", res);
+        }
+
+        XrSwapchainImageWaitInfo waitInfo{XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+        waitInfo.timeout = XR_INFINITE_DURATION;
+        res = xrWaitSwapchainImage(viewSwapchain.handle, &waitInfo);
+        if(res < XR_SUCCESS){
+            __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitSwapchainImage : %d", res);
+        }
+
+        projectionLayerViews[i] = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
+        projectionLayerViews[i].pose = _views[i].pose;
+        projectionLayerViews[i].fov = _views[i].fov;
+        projectionLayerViews[i].subImage.swapchain = viewSwapchain.handle;
+        projectionLayerViews[i].subImage.imageRect.offset = {0, 0};
+        projectionLayerViews[i].subImage.imageRect.extent = {viewSwapchain.width, viewSwapchain.height};
+
+        const XrSwapchainImageBaseHeader* const swapchainImage = _swapchainImages[viewSwapchain.handle][swapchainImageIndex];
+        _graphicsBackendManager->RenderView(projectionLayerViews[i], swapchainImage, _colorSwapchainFormat);
+
+        XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+        res = xrReleaseSwapchainImage(viewSwapchain.handle, &releaseInfo);
+        if(res < XR_SUCCESS){
+            __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitSwapchainImage : %d", res);
+        }
+    }
+
+    layer.space = _appSpace;
+    layer.layerFlags =
+            //m_options->Parsed.EnvironmentBlendMode == XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND //TODO CUSTOMIZE
+            true ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT
+            : 0;
+    layer.viewCount = (uint32_t)projectionLayerViews.size();
+    layer.views = projectionLayerViews.data();
+    return true;
 }
 
 

@@ -39,6 +39,7 @@ private:
     XrSystemId _systemId;
     XrSession _session;
     bool _sessionRunning = true;
+    XrSpace _appSpace;
 
     std::vector<XrViewConfigurationView> _configViews;
     std::vector<XrView> _views;
@@ -57,4 +58,6 @@ private:
     void HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stateChangedEvent, bool* exitRenderLoop, bool* requestRestart);
 
 
+    bool RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompositionLayerProjectionView>& projectionLayerViews,
+                     XrCompositionLayerProjection& layer);
 };
