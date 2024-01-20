@@ -68,7 +68,7 @@ void Engine::engineMain() {
     bool exitRenderLoop = false;
 
     // Create graphics OpenGL ES Backend (Context, swapchain...) manager...
-    GraphicsBackendManager* graphicsBackendManager = new GraphicsBackendManager();
+    GraphicsBackendManager* graphicsBackendManager = new GraphicsBackendManager(_nativeWindow);
 
     // Initialize the OpenXR program.
     OpenXRPlugin* openXrPlugin = new OpenXRPlugin("Kernel3D", graphicsBackendManager); //TODO CHANGE NAME
@@ -77,16 +77,17 @@ void Engine::engineMain() {
     openXrPlugin->InitializeLoaderAndJavaContext(_vm, _activity);
 
     openXrPlugin->CreateInstance();
-    /*program->InitializeSystem();
+    openXrPlugin->InitializeSystemId();
 
-    options->SetEnvironmentBlendMode(program->GetPreferredBlendMode());
-    UpdateOptionsFromSystemProperties(*options);
-    platformPlugin->UpdateOptions(options);
-    graphicsPlugin->UpdateOptions(options);
+    //options->SetEnvironmentBlendMode(program->GetPreferredBlendMode());
+    //UpdateOptionsFromSystemProperties(*options);
 
-    program->InitializeDevice();
-    program->InitializeSession();
-    program->CreateSwapchains();
+    //platformPlugin->UpdateOptions(options);
+    //graphicsPlugin->UpdateOptions(options);
+
+    openXrPlugin->InitializeDevice();
+    openXrPlugin->InitializeSession();
+    /*program->CreateSwapchains();
 
     while (app->destroyRequested == 0) {
         // Read all pending events.

@@ -7,6 +7,13 @@ OpenXRPlugin::OpenXRPlugin(const char* appName, GraphicsBackendManager *graphics
     _appName = appName;
 }
 
+OpenXRPlugin::~OpenXRPlugin() {
+    //TODO
+
+    xrDestroySession(_session);
+    xrDestroyInstance(_instance);
+}
+
 XrResult OpenXRPlugin::InitializeLoaderAndJavaContext(JavaVM * jvm, jobject activity) {
     PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
     XrResult result = xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)(&initializeLoader));
@@ -43,8 +50,63 @@ XrResult OpenXRPlugin::CreateInstance() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Before create instance");
     XrResult result = xrCreateInstance(&createInfo, &_instance);
-    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "_createInstance Result : %u", result);
+    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "_createInstance Result : %d", result);
 
     return result;
 }
+
+XrResult OpenXRPlugin::InitializeSystemId() {
+    XrSystemGetInfo systemInfo{XR_TYPE_SYSTEM_GET_INFO};
+    systemInfo.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
+    XrResult result = xrGetSystem(_instance, &systemInfo, &_systemId);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "_getSystem Result : %d", result);
+
+    return result;
+}
+
+XrResult OpenXRPlugin::InitializeDevice(){
+    return _graphicsBackendManager->InitializeDevice(_instance, _systemId);
+}
+
+XrResult OpenXRPlugin::InitializeSession() {
+
+
+    const XrBaseInStructure* structure = _graphicsBackendManager->GetGraphicsBinding();
+
+
+    XrSessionCreateInfo createInfo = {
+            XR_TYPE_SESSION_CREATE_INFO,
+            structure,
+            0,
+            _systemId
+    };
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Creating Session... : %p, %p, %p, %p, %p, %p",
+                        ((XrGraphicsBindingOpenGLESAndroidKHR*)structure)->type,
+                        ((XrGraphicsBindingOpenGLESAndroidKHR*)structure)->next,
+                        ((XrGraphicsBindingOpenGLESAndroidKHR*)structure)->display,
+                        ((XrGraphicsBindingOpenGLESAndroidKHR*)structure)->config,
+                        ((XrGraphicsBindingOpenGLESAndroidKHR*)structure)->context,
+                        _instance);
+
+    XrSession session;
+    XrResult result = xrCreateSession(_instance, &createInfo, &session);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "InitializeSession : %d", result);
+
+
+    /*LogReferenceSpaces();
+    InitializeActions();
+    CreateVisualizedSpaces();*/
+
+    /*{
+        XrReferenceSpaceCreateInfo referenceSpaceCreateInfo = GetXrReferenceSpaceCreateInfo(m_options->AppSpace);
+        CHECK_XRCMD(xrCreateReferenceSpace(m_session, &referenceSpaceCreateInfo, &m_appSpace));
+    }*/
+
+    return result;
+}
+
 
