@@ -16,6 +16,11 @@ public:
     XrResult InitializeDevice();
     XrResult InitializeSession();
     XrResult CreateSwapchains();
+
+    bool IsSessionRunning();
+
+    void PollEvents(bool *pBoolean, bool *pBoolean1);
+
 private:
     struct Swapchain {
         XrSwapchain handle;
@@ -29,6 +34,7 @@ private:
     const char* _appName;
     XrSystemId _systemId;
     XrSession _session;
+    bool _sessionRunning = true;
 
     std::vector<XrViewConfigurationView> _configViews;
     std::vector<XrView> _views;
@@ -36,8 +42,15 @@ private:
     std::vector<Swapchain> _swapchains;
     std::map<XrSwapchain, std::vector<XrSwapchainImageBaseHeader*>> _swapchainImages;
 
-
+    XrEventDataBuffer _eventDataBuffer;
+    XrSessionState _sessionState;
 
 
     XrBaseInStructure* GetInstanceCreateExtension() { return (XrBaseInStructure*)&_instanceCreateInfoAndroid; }
+
+    const XrEventDataBaseHeader *TryReadNextEvent();
+
+    void HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stateChangedEvent, bool* exitRenderLoop, bool* requestRestart);
+
+
 };

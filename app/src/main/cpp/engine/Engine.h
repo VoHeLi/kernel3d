@@ -22,6 +22,7 @@ private:
     jobject _activity;
     ANativeWindow* _nativeWindow;
     bool _resumed;
+    bool _destroyed;
 
     void engineMain();
 

@@ -45,6 +45,7 @@ Engine::~Engine(){
 
 void Engine::setNativeWindow(ANativeWindow *window) {
     _nativeWindow = window;
+    _destroyed = _nativeWindow == nullptr;
 }
 
 void Engine::setResuming(bool resumed) {
@@ -89,27 +90,27 @@ void Engine::engineMain() {
     openXrPlugin->InitializeSession();
     openXrPlugin->CreateSwapchains();
 
-    /*while (app->destroyRequested == 0) {
+    while (!_destroyed) {
         // Read all pending events.
-        for (;;) {
+        /*for (;;) {
             int events;
             struct android_poll_source* source;
             // If the timeout is zero, returns immediately without blocking.
             // If the timeout is negative, waits indefinitely until an event appears.
             const int timeoutMilliseconds =
-                    (!appState.Resumed && !program->IsSessionRunning() && app->destroyRequested == 0) ? -1 : 0;
+                    (!_resumed && !openXrPlugin->IsSessionRunning() && !_destroyed) ? -1 : 0;
             if (ALooper_pollAll(timeoutMilliseconds, nullptr, &events, (void**)&source) < 0) {
                 break;
             }
 
-            // Process this event.
-            if (source != nullptr) {
+            // Process this event. TODO CHANGE, but should not be needed, android events...
+            /*if (source != nullptr) {
                 source->process(app, source);
-            }
-        }
+            }*/
+        //}*/
 
-        program->PollEvents(&exitRenderLoop, &requestRestart);
-        if (exitRenderLoop) {
+        openXrPlugin->PollEvents(&exitRenderLoop, &requestRestart);
+        /*if (exitRenderLoop) {
             ANativeActivity_finish(app->activity);
             continue;
         }
@@ -121,8 +122,8 @@ void Engine::engineMain() {
         }
 
         program->PollActions();
-        program->RenderFrame();
-    }*/
+        program->RenderFrame();*/
+    }
 
 
     delete graphicsBackendManager;

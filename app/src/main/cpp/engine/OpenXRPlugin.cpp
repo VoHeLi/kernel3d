@@ -95,6 +95,7 @@ XrResult OpenXRPlugin::InitializeSession() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "InitializeSession : %d", result);
 
+    _sessionRunning = true;
 
     /*LogReferenceSpaces();
     InitializeActions();
@@ -227,6 +228,120 @@ XrResult OpenXRPlugin::CreateSwapchains() {
     }
 
     return XR_SUCCESS;
+}
+
+bool OpenXRPlugin::IsSessionRunning() {
+    //_sessionRunning = true; //TODO REMOVE
+    return _sessionRunning;
+}
+
+void OpenXRPlugin::PollEvents(bool *exitRenderLoop, bool *requestRestart) {
+    *exitRenderLoop = *requestRestart = false;
+
+    // Process all pending messages.
+    while (const XrEventDataBaseHeader* event = TryReadNextEvent()) {
+        switch (event->type) {
+            case XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING: {
+                const auto& instanceLossPending = *reinterpret_cast<const XrEventDataInstanceLossPending*>(event);
+                __android_log_print(ANDROID_LOG_WARN, "Androx Kernel3D", "XrEventDataInstanceLossPending by %lld", instanceLossPending.lossTime);
+                *exitRenderLoop = true;
+                *requestRestart = true;
+                return;
+            }
+            case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {
+                auto sessionStateChangedEvent = *reinterpret_cast<const XrEventDataSessionStateChanged*>(event);
+                HandleSessionStateChangedEvent(sessionStateChangedEvent, exitRenderLoop, requestRestart);
+                break;
+            }
+            case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+                /*LogActionSourceName(m_input.grabAction, "Grab");
+                LogActionSourceName(m_input.quitAction, "Quit");
+                LogActionSourceName(m_input.poseAction, "Pose");
+                LogActionSourceName(m_input.vibrateAction, "Vibrate");*/
+                __android_log_print(ANDROID_LOG_WARN, "Androx Kernel3D", "XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED");
+                break;
+            case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+            default: {
+                __android_log_print(ANDROID_LOG_VERBOSE, "Androx Kernel3D", "Ignoring event type %d", event->type);
+                break;
+            }
+        }
+    }
+}
+
+const XrEventDataBaseHeader *OpenXRPlugin::TryReadNextEvent() {
+    // It is sufficient to clear the just the XrEventDataBuffer header to
+    // XR_TYPE_EVENT_DATA_BUFFER
+    XrEventDataBaseHeader* baseHeader = reinterpret_cast<XrEventDataBaseHeader*>(&_eventDataBuffer);
+    *baseHeader = {XR_TYPE_EVENT_DATA_BUFFER};
+    const XrResult xr = xrPollEvent(_instance, &_eventDataBuffer);
+    if (xr == XR_SUCCESS) {
+        if (baseHeader->type == XR_TYPE_EVENT_DATA_EVENTS_LOST) {
+            const XrEventDataEventsLost* const eventsLost = reinterpret_cast<const XrEventDataEventsLost*>(baseHeader);
+            __android_log_print(ANDROID_LOG_WARN, "Androx Kernel3D","%d events lost", eventsLost->lostEventCount);
+        }
+
+        return baseHeader;
+    }
+    if (xr == XR_EVENT_UNAVAILABLE) {
+        return nullptr;
+    }
+    return nullptr;
+}
+
+void
+OpenXRPlugin::HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stateChangedEvent, bool* exitRenderLoop, bool* requestRestart) {
+
+    __android_log_print(ANDROID_LOG_INFO, "Androx Kernel3D","XrEventDataSessionStateChanged: state %d->%d session=%lld time=%lld", oldState,
+                                     _sessionState, stateChangedEvent.session, stateChangedEvent.time);
+
+
+    if ((stateChangedEvent.session != XR_NULL_HANDLE) && (stateChangedEvent.session != _session)) {
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","XrEventDataSessionStateChanged for unknown session");
+        return;
+    }
+
+    switch (_sessionState) {
+        case XR_SESSION_STATE_READY: {
+            if(_session == XR_NULL_HANDLE){
+                break;
+            }
+            XrSessionBeginInfo sessionBeginInfo{XR_TYPE_SESSION_BEGIN_INFO};
+            sessionBeginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+            XrResult result = xrBeginSession(_session, &sessionBeginInfo);
+            if(result < XR_SUCCESS){
+                __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrBeginSession not ready ! : %d", result);
+            }
+
+            _sessionRunning = true;
+            break;
+        }
+        case XR_SESSION_STATE_STOPPING: {
+            if(_session == XR_NULL_HANDLE){
+                break;
+            }
+            _sessionRunning = false;
+            XrResult result = xrEndSession(_session);
+            if(result < XR_SUCCESS){
+                __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrBeginSession not ready ! : %d", result);
+            }
+            break;
+        }
+        case XR_SESSION_STATE_EXITING: {
+            *exitRenderLoop = true;
+            // Do not attempt to restart because user closed this session.
+            *requestRestart = false;
+            break;
+        }
+        case XR_SESSION_STATE_LOSS_PENDING: {
+            *exitRenderLoop = true;
+            // Poll for a new instance.
+            *requestRestart = true;
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 
