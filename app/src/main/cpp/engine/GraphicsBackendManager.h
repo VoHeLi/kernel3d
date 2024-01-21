@@ -42,10 +42,13 @@ private:
     void CheckProgram(GLuint prog);
 
     const uint32_t GetDepthTexture(const uint32_t colorTexture);
+    GLuint loadTexture(const char* imagePath);
 
     GLuint _program;
     GLint _vertexAttribCoords;
     GLuint _debugVbo;
     GLuint _debugEbo;
     GLuint _debugVao;
+
+    GLuint _texture;
 };

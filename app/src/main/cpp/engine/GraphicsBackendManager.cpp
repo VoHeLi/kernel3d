@@ -6,6 +6,9 @@
 
 #include "gfxwrapper_opengl.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../stb_image.h"
+
 
 GraphicsBackendManager::GraphicsBackendManager(ANativeWindow* nativeWindow) {
     _nativeWindow = nativeWindow;
@@ -173,6 +176,9 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, _texture);
+
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glDisableVertexAttribArray(0);
@@ -236,16 +242,49 @@ static const char* FragmentShaderGlsl = R"_(#version 320 es
 // Vertex shader source code
 const char* vertexShaderSource =
         "attribute vec4 position;\n"
+        "varying vec2 textureCoords;\n"
         "void main() {\n"
-        "  gl_Position = position;\n"
+        "  gl_Position = position;"
+        "  textureCoords = vec2((position.x+0.3)/0.6, (position.y+0.3)/0.6); \n"
         "}\0";
 
 // Fragment shader source code
 const char* fragmentShaderSource =
         "precision mediump float;\n"
+        "uniform sampler2D textureSampler;\n"
+        "varying vec2 textureCoords;\n"
         "void main() {\n"
         "  gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
+        "  gl_FragColor = texture2D(textureSampler, textureCoords);\n"
         "}\0";
+
+GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, channels;
+    stbi_set_flip_vertically_on_load(true); // Inverser l'image en Y (OpenGL a l'origine en bas à gauche)
+    unsigned char* data = stbi_load(imagePath, &width, &height, &channels, 0);
+
+    if (data) {
+        GLenum format = (channels == 3) ? GL_RGB : GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    } else {
+        glDeleteTextures(1, &textureID);
+        textureID = 0;
+    }
+
+    return textureID;
+}
 
 void GraphicsBackendManager::InitializeResources() {
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -276,6 +315,13 @@ void GraphicsBackendManager::InitializeResources() {
     glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    _texture = loadTexture("/storage/emulated/0/test_texture.jpg");
+
+    GLint textureSamplerLocation = glGetUniformLocation(_program, "textureSampler");
+
+    glUseProgram(_program);
+    glUniform1i(textureSamplerLocation, 0);
+    glUseProgram(0);
 
     //TODO, MOVE TO ANOTHER CLASS
     /*
