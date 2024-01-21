@@ -2,8 +2,10 @@
 
 #include <android/log.h>
 #include <vector>
+#include <chrono>
 
 #include "gfxwrapper_opengl.h"
+
 
 GraphicsBackendManager::GraphicsBackendManager(ANativeWindow* nativeWindow) {
     _nativeWindow = nativeWindow;
@@ -71,22 +73,15 @@ XrResult GraphicsBackendManager::InitializeDevice(XrInstance instance, XrSystemI
             },
             this);
 
-    //InitializeResources(); //TODO
-
-    //test
-    //glClearColor(1.0f, 1.0f, 0.0f, 0.5f);
-    //glClear(GL_COLOR_BUFFER_BIT);
-
-    //eglSwapBuffers(_nativeDisplay, _nativeSurface);
-
     glGenFramebuffers(1, &_swapchainFramebuffer);
+
 
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "InitializeDevice : %u", result);
     return result;
 }
 
 const XrBaseInStructure* GraphicsBackendManager::GetGraphicsBinding() {
-    XrGraphicsBindingOpenGLESAndroidKHR* bindings = (XrGraphicsBindingOpenGLESAndroidKHR*) malloc(101); //MAGIC NUMBER 49, TODO UNDERSTAND WHY MONADO USES EXTRA SPACE
+    XrGraphicsBindingOpenGLESAndroidKHR* bindings = (XrGraphicsBindingOpenGLESAndroidKHR*) malloc(1000); //MAGIC NUMBER 49, TODO UNDERSTAND WHY MONADO USES EXTRA SPACE
     bindings->type = XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR;
     bindings->display = _nativeDisplay;
     bindings->config = _nativeConfig;
@@ -155,21 +150,34 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
                static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
                static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
 
-    glFrontFace(GL_CW);
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
+    //glFrontFace(GL_CW);
+    //glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
+    //glEnable(GL_DEPTH_TEST);
 
     const uint32_t depthTexture = GetDepthTexture(colorTexture);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+
+    //TODO TRANSLATE CODE TO ANOTHER CLASS
 
     // Clear swapchain and depth buffer.
-    glClearColor(1.0f, 1.0f, 1.0f, 0.5f);
-    glClearDepthf(1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    //glClearDepthf(1.0f);
+    glClear(GL_COLOR_BUFFER_BIT); //debug
 
+    glUseProgram(_program);
+
+    glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(0);
+
+    glUseProgram(0);
     //TODO RENDER REAL Objects
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -204,7 +212,148 @@ const uint32_t GraphicsBackendManager::GetDepthTexture(const uint32_t colorTextu
     return depthTexture;
 }
 
+static const char* VertexShaderGlsl = R"_(#version 320 es
 
+    in vec3 VertexPos;
+
+
+    void main() {
+       gl_Position = vec4(VertexPos, 1.0);
+    }
+    )_";
+
+// The version statement has come on first line.
+static const char* FragmentShaderGlsl = R"_(#version 320 es
+
+    out lowp vec4 FragColor;
+
+    void main() {
+        FragColor = vec4(1,1,1,1);
+    }
+    )_";
+
+
+// Vertex shader source code
+const char* vertexShaderSource =
+        "attribute vec4 position;\n"
+        "void main() {\n"
+        "  gl_Position = position;\n"
+        "}\0";
+
+// Fragment shader source code
+const char* fragmentShaderSource =
+        "precision mediump float;\n"
+        "void main() {\n"
+        "  gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
+        "}\0";
+
+void GraphicsBackendManager::InitializeResources() {
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    _program = glCreateProgram();
+    glAttachShader(_program, vertexShader);
+    glAttachShader(_program, fragmentShader);
+    glLinkProgram(_program);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    // Set up VBO for quad
+    GLfloat vertices[] = {
+            -0.3f, -0.3f, 0.0f,
+            0.3f, -0.3f, 0.0f,
+            -0.3f,  0.3f, 0.0f,
+            0.3f,  0.3f, 0.0f
+    };
+
+    glGenBuffers(1, &_debugVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+
+    //TODO, MOVE TO ANOTHER CLASS
+    /*
+    // Vertices for a quad
+    GLfloat vertices[] = {
+            // Positions
+            -0.5f,  0.5f, 0.0f,   // Top-left
+            0.5f,  0.5f, 0.0f,  // Top-right
+            0.5f, -0.5f, 0.0f,  // Bottom-right
+            -0.5f, -0.5f, 0.0f   // Bottom-left
+    };
+
+    // Indices for two triangles forming a quad
+    GLuint indices[] = {
+            0, 1, 2,  // First triangle
+            0, 2, 3   // Second triangle
+    };
+
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &VertexShaderGlsl, nullptr);
+    glCompileShader(vertexShader);
+    CheckShader(vertexShader);
+
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &FragmentShaderGlsl, nullptr);
+    glCompileShader(fragmentShader);
+    CheckShader(fragmentShader);
+
+    _program = glCreateProgram();
+    glAttachShader(_program, vertexShader);
+    glAttachShader(_program, fragmentShader);
+    glLinkProgram(_program);
+    CheckProgram(_program);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+
+    _vertexAttribCoords = glGetAttribLocation(_program, "VertexPos");
+
+    glGenBuffers(1, &_debugVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &_debugEbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _debugEbo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glGenVertexArrays(1, &_debugVao);
+    glBindVertexArray(_debugVao);
+    glEnableVertexAttribArray(_vertexAttribCoords);
+    glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _debugEbo);
+    //glVertexAttribPointer(_vertexAttribCoords, 4, GL_FLOAT, GL_FALSE, 3, nullptr);
+    glVertexAttribPointer(_vertexAttribCoords, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), nullptr);*/
+}
+
+void GraphicsBackendManager::CheckShader(GLuint shader) {
+    GLint r = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &r);
+    if (r == GL_FALSE) {
+        GLchar msg[4096] = {};
+        GLsizei length;
+        glGetShaderInfoLog(shader, sizeof(msg), &length, msg);
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "Compile shader failed: %s", msg);
+    }
+}
+
+void GraphicsBackendManager::CheckProgram(GLuint prog) {
+    GLint r = 0;
+    glGetProgramiv(prog, GL_LINK_STATUS, &r);
+    if (r == GL_FALSE) {
+        GLchar msg[4096] = {};
+        GLsizei length;
+        glGetProgramInfoLog(prog, sizeof(msg), &length, msg);
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "Link program failed: %s", msg);
+    }
+}
 
 /*// Initialize the gl extensions. Note we have to open a window.
     EGLint eglMajor, eglMinor;

@@ -90,6 +90,8 @@ void Engine::engineMain() {
     openXrPlugin->InitializeSession();
     openXrPlugin->CreateSwapchains();
 
+    graphicsBackendManager->InitializeResources();
+
     while (!_destroyed) {
         // Read all pending events.
         /*for (;;) {

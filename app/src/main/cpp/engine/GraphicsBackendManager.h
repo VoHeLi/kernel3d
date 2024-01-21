@@ -22,6 +22,8 @@ public:
     std::vector<XrSwapchainImageBaseHeader *>
     AllocateSwapchainImageStructs(uint32_t i, XrSwapchainCreateInfo info);
 
+    void InitializeResources();
+
     void RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat);
 
 private:
@@ -35,5 +37,15 @@ private:
     std::list<std::vector<XrSwapchainImageOpenGLESKHR>> _swapchainImageBuffers;
     std::map<uint32_t, uint32_t> _colorToDepthMap;
 
+
+    void CheckShader(GLuint shader);
+    void CheckProgram(GLuint prog);
+
     const uint32_t GetDepthTexture(const uint32_t colorTexture);
+
+    GLuint _program;
+    GLint _vertexAttribCoords;
+    GLuint _debugVbo;
+    GLuint _debugEbo;
+    GLuint _debugVao;
 };
