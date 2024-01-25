@@ -26,5 +26,6 @@ private:
 
     void engineMain();
 
+    void intentTest(int displayTextureId);
 };
 

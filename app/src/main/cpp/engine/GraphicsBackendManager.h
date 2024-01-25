@@ -26,6 +26,8 @@ public:
 
     void RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat);
 
+    int GetDisplayTexture();
+
 private:
     ANativeWindow* _nativeWindow;
     EGLDisplay _nativeDisplay;
@@ -43,6 +45,7 @@ private:
 
     const uint32_t GetDepthTexture(const uint32_t colorTexture);
     GLuint loadTexture(const char* imagePath);
+    GLuint createDisplayTexture();
 
     GLuint _program;
     GLint _vertexAttribCoords;

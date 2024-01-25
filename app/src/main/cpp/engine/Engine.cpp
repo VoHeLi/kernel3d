@@ -54,7 +54,6 @@ void Engine::setResuming(bool resumed) {
 
 void Engine::start() {
     _engineThread = std::thread(&Engine::engineMain, this);
-
 }
 
 void Engine::engineMain() {
@@ -92,6 +91,7 @@ void Engine::engineMain() {
 
     graphicsBackendManager->InitializeResources();
 
+    intentTest(graphicsBackendManager->GetDisplayTexture());
     while (!_destroyed) {
         // Read all pending events.
         /*for (;;) {
@@ -139,4 +139,10 @@ void Engine::engineMain() {
     delete openXrPlugin;
 
     _vm->DetachCurrentThread();
+}
+
+void Engine::intentTest(int displayTextureId) {
+
+    jmethodID launchTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "intentTest", "(I)V");
+    _jniEngineEnv->CallVoidMethod(_activity, launchTestMethod, displayTextureId);
 }

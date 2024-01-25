@@ -158,6 +158,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     //glEnable(GL_CULL_FACE);
     //glEnable(GL_DEPTH_TEST);
 
+
     const uint32_t depthTexture = GetDepthTexture(colorTexture);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
@@ -177,7 +178,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, _texture);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture);
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -241,6 +242,7 @@ static const char* FragmentShaderGlsl = R"_(#version 320 es
 
 // Vertex shader source code
 const char* vertexShaderSource =
+        "#extension GL_OES_EGL_image_external : enable\n"
         "attribute vec4 position;\n"
         "varying vec2 textureCoords;\n"
         "void main() {\n"
@@ -250,8 +252,9 @@ const char* vertexShaderSource =
 
 // Fragment shader source code
 const char* fragmentShaderSource =
+        "#extension GL_OES_EGL_image_external : enable\n"
         "precision mediump float;\n"
-        "uniform sampler2D textureSampler;\n"
+        "uniform samplerExternalOES textureSampler;\n"
         "varying vec2 textureCoords;\n"
         "void main() {\n"
         "  gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
@@ -286,7 +289,22 @@ GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
     return textureID;
 }
 
+GLuint GraphicsBackendManager::createDisplayTexture(){
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureID);
+    glTexImage2D(GL_TEXTURE_EXTERNAL_OES, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}
+
 void GraphicsBackendManager::InitializeResources() {
+    glEnable(GL_OES_EGL_image_external);
+
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
@@ -315,7 +333,8 @@ void GraphicsBackendManager::InitializeResources() {
     glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    _texture = loadTexture("/storage/emulated/0/test_texture.jpg");
+    //_texture = loadTexture("/storage/emulated/0/test_texture.jpg");
+    _texture = createDisplayTexture();
 
     GLint textureSamplerLocation = glGetUniformLocation(_program, "textureSampler");
 
@@ -399,6 +418,10 @@ void GraphicsBackendManager::CheckProgram(GLuint prog) {
         glGetProgramInfoLog(prog, sizeof(msg), &length, msg);
         __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "Link program failed: %s", msg);
     }
+}
+
+int GraphicsBackendManager::GetDisplayTexture() {
+    return _texture;
 }
 
 /*// Initialize the gl extensions. Note we have to open a window.
