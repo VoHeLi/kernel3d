@@ -72,7 +72,7 @@ public class Kernel3DLauncher extends Activity {
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
                 //TODO
-                destroyNativeWindow();
+                //destroyNativeWindow();
             }
         });
 
@@ -97,17 +97,16 @@ public class Kernel3DLauncher extends Activity {
 
     @Override
     protected void onPause(){
-        super.onPause();
+        //super.onPause();
 
-        pause();
+        //pause();
         //TODO Pause Update
     }
 
     @Override
     protected void onStop(){
-        super.onStop();
-
-        stop();
+        //super.onStop();
+        //stop();
         //TODO UNLOAD
     }
 
@@ -117,9 +116,14 @@ public class Kernel3DLauncher extends Activity {
     private Handler mHandler;
     private HandlerThread mHandlerThread;
     @RequiresPermission("android.permission.CAPTURE_SECURE_VIDEO_OUTPUT")
-    private SurfaceTexture createVirtualDisplay(int textureId) {
-        int width = 720;
-        int height = 1280;
+    private SurfaceTexture createVirtualDisplay(int textureId, int appId) {
+        int width = 480;
+        int height = 854;
+
+        if(appId == 1){
+            width = 1280;
+            height = 720;
+        }
 
         mDisplayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
         mHandlerThread = new HandlerThread("VirtualDisplayThread");
@@ -130,7 +134,7 @@ public class Kernel3DLauncher extends Activity {
         setFocusable(true);*/
 
         SurfaceTexture surfaceTexture = new SurfaceTexture(textureId);
-        surfaceTexture.setDefaultBufferSize(1280, 720);
+        surfaceTexture.setDefaultBufferSize(width, height);
 
         Surface surface = new Surface(surfaceTexture);
 
@@ -142,7 +146,9 @@ public class Kernel3DLauncher extends Activity {
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC |
                         DisplayManager.VIRTUAL_DISPLAY_FLAG_SECURE |
                         DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY |
-                        DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION,
+                null,
+                mHandler
         );
 
         //mVirtualDisplay.getDisplay().trusted; todo use reflections
@@ -154,14 +160,34 @@ public class Kernel3DLauncher extends Activity {
         return surfaceTexture;
     }
 
-    @RequiresPermission("android.permission.CAPTURE_SECURE_VIDEO_OUTPUT")
-    public void intentTest(int displayTextureId) throws InterruptedException {
+    SurfaceTexture surfaceTexture1;
+    SurfaceTexture surfaceTexture2;
+    SurfaceTexture surfaceTexture3;
+    public void intentTest(int displayTextureId, int appId) throws InterruptedException {
         Log.d("Androx Kernel3D", "Java method called! " + displayTextureId);
 
-        //String packageName = "com.studio501.canvasrun";
-        String packageName = "jp.snowlife01.android.rotationcontrol";
+        String packageName2 = "com.studio501.canvasrun";
+        String packageName3 = "state.balls.io";
+        String packageName1 = "com.robtopx.geometryjump";
+        String packageName = "org.dolphinemu.dolphinemu";
 
-        SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId);
+        SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId, appId);
+
+        switch(appId){
+            case 1:
+                surfaceTexture1 = surfaceTexture;
+                packageName = packageName1;
+                break;
+            case 2:
+                surfaceTexture2 = surfaceTexture;
+                packageName = packageName2;
+                break;
+            case 3:
+                surfaceTexture3 = surfaceTexture;
+                packageName = packageName3;
+                break;
+        }
+
         Log.d("Androx Kernel3D", "Java method test!");
 
         PackageManager packageManager = getPackageManager();
@@ -191,7 +217,7 @@ public class Kernel3DLauncher extends Activity {
             startActivity(intent, options.toBundle());
 
             Log.d("Androx Kernel3D", "after launching App!");
-            Thread.sleep(10000);
+            Thread.sleep(2000);
             Log.d("Androx Kernel3D", "after sleep");
             surfaceTexture.updateTexImage();
             Log.d("Androx Kernel3D", "after updating texture!");
@@ -202,6 +228,13 @@ public class Kernel3DLauncher extends Activity {
             // Vous pouvez ajouter ici un code pour gérer cette situation
         }
 
+    }
+
+    public void updateDisplayTexture(){
+        surfaceTexture1.updateTexImage();
+        surfaceTexture2.updateTexImage();
+        surfaceTexture3.updateTexImage();
+        Log.d("Androx Kernel3D", "after updating tex!");
     }
 
     /*public void reflectPermissions() throws NoSuchMethodException, NoSuchFieldException, IllegalAccessException, IOException {

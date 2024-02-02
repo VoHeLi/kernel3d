@@ -91,7 +91,9 @@ void Engine::engineMain() {
 
     graphicsBackendManager->InitializeResources();
 
-    intentTest(graphicsBackendManager->GetDisplayTexture());
+    intentTest(graphicsBackendManager->GetDisplayTexture(1), 1);
+    intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
+    intentTest(graphicsBackendManager->GetDisplayTexture(3), 3);
     while (!_destroyed) {
         // Read all pending events.
         /*for (;;) {
@@ -131,6 +133,9 @@ void Engine::engineMain() {
         }
 
         openXrPlugin->PollActions();
+
+        updateSurfaceTexture();
+
         openXrPlugin->RenderFrame();
     }
 
@@ -141,8 +146,13 @@ void Engine::engineMain() {
     _vm->DetachCurrentThread();
 }
 
-void Engine::intentTest(int displayTextureId) {
+void Engine::intentTest(int displayTextureId, int app) {
 
-    jmethodID launchTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "intentTest", "(I)V");
-    _jniEngineEnv->CallVoidMethod(_activity, launchTestMethod, displayTextureId);
+    jmethodID launchTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "intentTest", "(II)V");
+    _jniEngineEnv->CallVoidMethod(_activity, launchTestMethod, displayTextureId, app);
+}
+
+void Engine::updateSurfaceTexture(){
+    jmethodID updateTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "updateDisplayTexture", "()V");
+    _jniEngineEnv->CallVoidMethod(_activity, updateTestMethod);
 }

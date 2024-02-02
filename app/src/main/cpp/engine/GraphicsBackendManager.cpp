@@ -9,6 +9,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stb_image.h"
 
+#include "../glm/glm.hpp"
+#include "../glm/gtc/quaternion.hpp"
+#include "SpatialObject.h"
+#include "../glm/gtc/type_ptr.hpp"
 
 GraphicsBackendManager::GraphicsBackendManager(ANativeWindow* nativeWindow) {
     _nativeWindow = nativeWindow;
@@ -158,13 +162,59 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     //glEnable(GL_CULL_FACE);
     //glEnable(GL_DEPTH_TEST);
 
-
     const uint32_t depthTexture = GetDepthTexture(colorTexture);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
     //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
 
     //TODO TRANSLATE CODE TO ANOTHER CLASS
+
+    XrPosef cameraPos = layerView.pose;
+
+    glm::vec3 position = glm::vec3(cameraPos.position.x, cameraPos.position.y, cameraPos.position.z);
+    glm::quat rotation = glm::quat(cameraPos.orientation.w, cameraPos.orientation.x, cameraPos.orientation.y, cameraPos.orientation.z);
+    glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    SpatialObject* camObj = new SpatialObject(position, rotation, scale);
+    glm::mat4x4 viewMatrix = glm::inverse(camObj->getTransformationMatrix());
+    delete camObj;
+
+    //CALCUL DE LA MATRICE DE PROJECTION
+    float n = 0.1f;
+    float f = 1000.0f;
+    float l = tanf(layerView.fov.angleLeft);
+    float r = tanf(layerView.fov.angleRight);
+    float t = tanf(layerView.fov.angleUp);
+    float b = tanf(layerView.fov.angleDown);
+
+    glm::mat4x4 projectionMatrix = glm::mat4x4{
+        2*n/(r-l), 0, (r+l)/(r-l), 0,
+        0, 2*n/(t-b), (t+b)/(t-b), 0,
+        0, 0, -(f+n)/(f-n), -(2*f*n)/(f-n),
+        0, 0, -1, 0
+    };
+
+    //COLONNE PAR COLONNE, la matrice finale est transposee!!!
+
+    glm::mat4x4 projectionMatrix2 = glm::mat4x4{
+            2/(r-l), 0, 0, 0,
+            0, 2/(t-b), 0, 0,
+            (r+l)/(r-l), (t+b)/(t-b), -(f+n)/(f-n), -1,
+            0, 0, -(2*f*n)/(f-n), 0
+    };
+
+    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "%.6f %.6f %.6f %.6f", layerView.fov.angleLeft, layerView.fov.angleRight, layerView.fov.angleUp, layerView.fov.angleDown);
+
+    /*glm::mat4x4 testMatrix = glm::mat4x4{
+            2/(r-l), 0, 0, 10,
+            0, 2/(t-b), 0, 0,
+            (r+l)/(r-l), (t+b)/(t-b), 1, 0,
+            0, 0, 0, 1
+    };*/
+
+
+
+    //TODO REMOVE DEBUG
 
     // Clear swapchain and depth buffer.
     glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
@@ -173,13 +223,46 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
 
     glUseProgram(_program);
 
+    GLint finalMatrixLocation = glGetUniformLocation(_program, "finalMatrix");
+
+    glm::mat4x4 finalMatrix = projectionMatrix2 * viewMatrix;
+    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix));
+
     glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture);
+    glm::vec3 pos = glm::vec3(0, 0,-0.5f);
+    glm::quat rot = glm::quat(1,0,0,0);
+    glm::vec3 size = glm::vec3(0.5*16.0f/9.0f, 0.5*1.0f, 1.0f);
+    SpatialObject* spatialObject = new SpatialObject(pos, rot, size);
+    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
+    delete spatialObject;
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture1);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    pos = glm::vec3(-1.0f, 0,-0.7f);
+    rot = glm::quat(1,0,0,0);
+    size = glm::vec3(0.5f*1.0f, 0.5f*16.0f/9.0f, 1.0f);
+    spatialObject = new SpatialObject(pos, rot, size);
+    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
+    delete spatialObject;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture2);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    pos = glm::vec3(1.0f, 0,-0.7f);
+    rot = glm::quat(1,0,0,0);
+    size = glm::vec3(0.5f*1.0f, 0.5f*16.0f/9.0f, 1.0f);
+    spatialObject = new SpatialObject(pos, rot, size);
+    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
+    delete spatialObject;
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture3);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glDisableVertexAttribArray(0);
@@ -245,9 +328,10 @@ const char* vertexShaderSource =
         "#extension GL_OES_EGL_image_external : enable\n"
         "attribute vec4 position;\n"
         "varying vec2 textureCoords;\n"
+        "uniform mat4 finalMatrix;\n"
         "void main() {\n"
-        "  gl_Position = position;"
-        "  textureCoords = vec2((position.x+0.3)/0.6, (position.y+0.3)/0.6); \n"
+        "  gl_Position = finalMatrix*position;"
+        "  textureCoords = vec2((position.x+0.5), 1.0-(position.y+0.5)); \n"
         "}\0";
 
 // Fragment shader source code
@@ -293,7 +377,7 @@ GLuint GraphicsBackendManager::createDisplayTexture(){
     GLuint textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureID);
-    glTexImage2D(GL_TEXTURE_EXTERNAL_OES, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    //glTexImage2D(GL_TEXTURE_EXTERNAL_OES, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -322,11 +406,18 @@ void GraphicsBackendManager::InitializeResources() {
     glDeleteShader(fragmentShader);
 
     // Set up VBO for quad
+    /*GLfloat vertices[] = {
+            -0.27f, -0.48f, -0.5f,
+            0.27f, -0.48f, -0.5f,
+            -0.27f,  0.48f, -0.5f,
+            0.27f,  0.48f, -0.5f
+    };*/
+
     GLfloat vertices[] = {
-            -0.3f, -0.3f, 0.0f,
-            0.3f, -0.3f, 0.0f,
-            -0.3f,  0.3f, 0.0f,
-            0.3f,  0.3f, 0.0f
+            -0.5f, -0.5f, 0.0f,
+            0.5f, -0.5f, 0.0f,
+            -0.5f,  0.5f, 0.0f,
+            0.5f,  0.5f, 0.0f
     };
 
     glGenBuffers(1, &_debugVbo);
@@ -334,7 +425,10 @@ void GraphicsBackendManager::InitializeResources() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     //_texture = loadTexture("/storage/emulated/0/test_texture.jpg");
-    _texture = createDisplayTexture();
+    _texture1 = createDisplayTexture();
+    _texture2 = createDisplayTexture();
+    _texture3 = createDisplayTexture();
+
 
     GLint textureSamplerLocation = glGetUniformLocation(_program, "textureSampler");
 
@@ -420,8 +514,18 @@ void GraphicsBackendManager::CheckProgram(GLuint prog) {
     }
 }
 
-int GraphicsBackendManager::GetDisplayTexture() {
-    return _texture;
+int GraphicsBackendManager::GetDisplayTexture(int id) {
+    switch(id){
+        case 1:
+            return _texture1;
+            break;
+        case 2:
+            return _texture2;
+            break;
+        case 3:
+            return _texture3;
+            break;
+    }
 }
 
 /*// Initialize the gl extensions. Note we have to open a window.

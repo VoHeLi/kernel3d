@@ -26,6 +26,8 @@ private:
 
     void engineMain();
 
-    void intentTest(int displayTextureId);
+    void intentTest(int displayTextureId, int app);
+
+    void updateSurfaceTexture();
 };
 

@@ -26,7 +26,7 @@ public:
 
     void RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat);
 
-    int GetDisplayTexture();
+    int GetDisplayTexture(int appId);
 
 private:
     ANativeWindow* _nativeWindow;
@@ -53,5 +53,8 @@ private:
     GLuint _debugEbo;
     GLuint _debugVao;
 
-    GLuint _texture;
+    GLuint _texture1;
+    GLuint _texture2;
+    GLuint _texture3;
+
 };
