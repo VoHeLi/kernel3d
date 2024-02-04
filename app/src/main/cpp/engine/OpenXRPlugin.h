@@ -17,6 +17,10 @@ public:
     XrResult InitializeSession();
     XrResult CreateSwapchains();
 
+    XrResult CreateHandTrackerEXT(XrHandTrackerCreateInfoEXT* createInfo, XrHandTrackerEXT* handTracker);
+    XrResult DestroyHandTrackerEXT(XrHandTrackerEXT handTracker);
+    XrResult LocateHandJointsEXT(XrHandTrackerEXT handTracker, XrHandJointsLocateInfoEXT* locateInfo, XrHandJointLocationsEXT* jointLocations);
+
     bool IsSessionRunning();
 
     void PollEvents(bool *pBoolean, bool *pBoolean1);

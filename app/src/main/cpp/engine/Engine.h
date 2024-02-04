@@ -28,6 +28,6 @@ private:
 
     void intentTest(int displayTextureId, int app);
 
-    void updateSurfaceTexture();
+    void updateSurfaceTexture(bool pinching);
 };
 

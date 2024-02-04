@@ -11,6 +11,9 @@
 
 #include "GraphicsBackendManager.h"
 #include "OpenXRPlugin.h"
+#include "../controllers/handtracking_inputs.h"
+#include "../glm/vec3.hpp"
+#include "../glm/geometric.hpp"
 
 Engine::Engine(JNIEnv* jniEnv, jobject activity){
     _jniActivityEnv = jniEnv;
@@ -91,9 +94,11 @@ void Engine::engineMain() {
 
     graphicsBackendManager->InitializeResources();
 
+    initializeHands(openXrPlugin);
+
     intentTest(graphicsBackendManager->GetDisplayTexture(1), 1);
-    intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
-    intentTest(graphicsBackendManager->GetDisplayTexture(3), 3);
+    /*intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
+    intentTest(graphicsBackendManager->GetDisplayTexture(3), 3);*/
     while (!_destroyed) {
         // Read all pending events.
         /*for (;;) {
@@ -114,6 +119,7 @@ void Engine::engineMain() {
         //}*/
 
         openXrPlugin->PollEvents(&exitRenderLoop, &requestRestart);
+
         if (exitRenderLoop) {
             jclass activityClass = _jniEngineEnv->GetObjectClass(_activity);
 
@@ -134,12 +140,27 @@ void Engine::engineMain() {
 
         openXrPlugin->PollActions();
 
-        updateSurfaceTexture();
+        //Hand tracking test TODO REMOVE
+        XrPosef indexTipPose;
+        XrPosef thumbTipPose;
+        tryGetBonePose(XR_HAND_RIGHT_EXT, &indexTipPose, XR_HAND_JOINT_INDEX_TIP_EXT);
+        tryGetBonePose(XR_HAND_RIGHT_EXT, &thumbTipPose, XR_HAND_JOINT_THUMB_TIP_EXT);
+
+        glm::vec3 indexTipPos = glm::vec3(indexTipPose.position.x, indexTipPose.position.y, indexTipPose.position.z);
+        glm::vec3 thumbTipPos = glm::vec3(thumbTipPose.position.x, thumbTipPose.position.y, thumbTipPose.position.z);
+
+        float pinchDist = glm::distance(indexTipPos, thumbTipPos);
+
+        bool pinching = pinchDist <= 0.04f;
+
+        __android_log_print(ANDROID_LOG_DEBUG, "AndroxKernel3D", "PinchDist : %.6f", pinchDist);
+
+        updateSurfaceTexture(!pinching);
 
         openXrPlugin->RenderFrame();
     }
 
-
+    destroyHands();
     delete graphicsBackendManager;
     delete openXrPlugin;
 
@@ -152,7 +173,7 @@ void Engine::intentTest(int displayTextureId, int app) {
     _jniEngineEnv->CallVoidMethod(_activity, launchTestMethod, displayTextureId, app);
 }
 
-void Engine::updateSurfaceTexture(){
-    jmethodID updateTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "updateDisplayTexture", "()V");
-    _jniEngineEnv->CallVoidMethod(_activity, updateTestMethod);
+void Engine::updateSurfaceTexture(bool pinching){
+    jmethodID updateTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "updateDisplayTexture", "(Z)V");
+    _jniEngineEnv->CallVoidMethod(_activity, updateTestMethod, pinching);
 }

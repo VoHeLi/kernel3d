@@ -10,11 +10,15 @@ import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
+import android.hardware.input.InputManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Display;
+import android.view.InputEvent;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -23,6 +27,7 @@ import android.view.View;
 import android.app.ActivityManager;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -38,6 +43,9 @@ public class Kernel3DLauncher extends Activity {
 
     static {
        System.loadLibrary("kernel3d");
+    }
+
+    public Kernel3DLauncher() throws ClassNotFoundException, InvocationTargetException, IllegalAccessException, NoSuchMethodException {
     }
 
     public native int createNativeWindow(Surface surface);
@@ -171,6 +179,8 @@ public class Kernel3DLauncher extends Activity {
         String packageName1 = "com.robtopx.geometryjump";
         String packageName = "org.dolphinemu.dolphinemu";
 
+        if(appId != 1) return;
+
         SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId, appId);
 
         switch(appId){
@@ -230,11 +240,57 @@ public class Kernel3DLauncher extends Activity {
 
     }
 
-    public void updateDisplayTexture(){
+    long downTime;
+    int lastAction = Integer.MIN_VALUE;
+
+    InputManager im = ((InputManager) Class.forName("android.hardware.input.InputManager").getDeclaredMethod("getInstance", new Class[0]).invoke((Object) null, new Object[0]));
+
+    public void updateDisplayTexture(boolean pinching){
+
+        //Touch the screen in the middle
+        MotionEvent.PointerCoords[] pointerCoordsArr = new MotionEvent.PointerCoords[1];
+        pointerCoordsArr[0]  = new MotionEvent.PointerCoords();
+        pointerCoordsArr[0].x = 1280/2;
+        pointerCoordsArr[0].y = 300;
+        pointerCoordsArr[0].pressure = 1.0f;
+        pointerCoordsArr[0].size = 1.0f;
+        int currentAction = getCurrentAction(pinching);
+
+        MotionEvent.PointerProperties[] arr1 = new MotionEvent.PointerProperties[1];
+        MotionEvent.PointerProperties pointerProperties = new MotionEvent.PointerProperties();
+        pointerProperties.toolType = 1;
+        pointerProperties.id = MotionEvent.ACTION_BUTTON_RELEASE; //MotionEvent.ACTION_BUTTON_RELEASE
+        arr1[0] = pointerProperties;
+
+        MotionEvent obtain = MotionEvent.obtain(this.downTime, SystemClock.uptimeMillis(), currentAction, 1, arr1, pointerCoordsArr, 0, 0, 1.0f, 1.0f, 0, 0, 4098, 0);
+
+        try{
+            obtain.getClass().getDeclaredMethod("setLynxDisplayId", new Class[]{Integer.TYPE}).invoke(obtain, new Object[]{Integer.valueOf(mVirtualDisplay.getDisplay().getDisplayId())});
+            ((Boolean) this.im.getClass().getDeclaredMethod("injectInputEvent", new Class[]{InputEvent.class, Integer.TYPE}).invoke(this.im, new Object[]{obtain, 1})).booleanValue();
+
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+
+
+
+        this.lastAction = currentAction;
+        //Update surfaces
         surfaceTexture1.updateTexImage();
-        surfaceTexture2.updateTexImage();
-        surfaceTexture3.updateTexImage();
+        /*surfaceTexture2.updateTexImage();
+        surfaceTexture3.updateTexImage();*/
         Log.d("Androx Kernel3D", "after updating tex!");
+    }
+
+    private int getCurrentAction(boolean z) {
+        if (!z && this.lastAction == 0) {
+            return 2;
+        } else if (z || this.lastAction == 0) {
+            return 1;
+        } else {
+            this.downTime = SystemClock.uptimeMillis();
+            return 0;
+        }
     }
 
     /*public void reflectPermissions() throws NoSuchMethodException, NoSuchFieldException, IllegalAccessException, IOException {

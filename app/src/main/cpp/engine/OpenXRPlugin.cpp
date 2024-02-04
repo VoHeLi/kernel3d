@@ -1,4 +1,5 @@
 #include "OpenXRPlugin.h"
+#include "../controllers/handtracking_inputs.h"
 
 #include <android/log.h>
 
@@ -38,15 +39,20 @@ XrResult OpenXRPlugin::CreateInstance() {
     //if(_instance != nullptr) return XR_ERROR_VALIDATION_FAILURE;
 
     // Create union of extensions required by platform and graphics plugins.
-    std::vector<const char*> extensions = {XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME, XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME};
+    std::vector<const char*> extensions = {XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME, XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME, XR_EXT_HAND_TRACKING_EXTENSION_NAME,
+                                           XR_ULTRALEAP_HAND_TRACKING_FOREARM_EXTENSION_NAME, XR_MSFT_HAND_INTERACTION_EXTENSION_NAME};
 
     XrInstanceCreateInfo createInfo{XR_TYPE_INSTANCE_CREATE_INFO};
     createInfo.next = GetInstanceCreateExtension();
     createInfo.enabledExtensionCount = (uint32_t)extensions.size();
     createInfo.enabledExtensionNames = extensions.data();
 
+    char* engineName = "Kernel3D Engine";
     strcpy(createInfo.applicationInfo.applicationName, _appName);
     createInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
+    createInfo.applicationInfo.applicationVersion = XR_MAKE_VERSION(1,0,0);
+    strcpy(createInfo.applicationInfo.engineName,  engineName);
+    createInfo.applicationInfo.engineVersion = XR_MAKE_VERSION(1,0,0);
 
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Before create instance");
     XrResult result = xrCreateInstance(&createInfo, &_instance);
@@ -58,6 +64,7 @@ XrResult OpenXRPlugin::CreateInstance() {
 XrResult OpenXRPlugin::InitializeSystemId() {
     XrSystemGetInfo systemInfo{XR_TYPE_SYSTEM_GET_INFO};
     systemInfo.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
+
     XrResult result = xrGetSystem(_instance, &systemInfo, &_systemId);
 
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "_getSystem Result : %d", result);
@@ -283,6 +290,10 @@ void OpenXRPlugin::PollEvents(bool *exitRenderLoop, bool *requestRestart) {
             }
         }
     }
+
+    //TODO OPTIMIZE CODE LOCATION
+    updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_LEFT_EXT);
+    updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_RIGHT_EXT);
 }
 
 const XrEventDataBaseHeader *OpenXRPlugin::TryReadNextEvent() {
@@ -480,6 +491,33 @@ bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompos
     layer.viewCount = (uint32_t)projectionLayerViews.size();
     layer.views = projectionLayerViews.data();
     return true;
+}
+
+XrResult OpenXRPlugin::CreateHandTrackerEXT(XrHandTrackerCreateInfoEXT* createInfo, XrHandTrackerEXT* handTracker) {
+    PFN_xrCreateHandTrackerEXT method = nullptr;
+    xrGetInstanceProcAddr(_instance, "xrCreateHandTrackerEXT",
+                          reinterpret_cast<void (**)(void)>(&method));
+    if(method == nullptr) return XR_ERROR_FUNCTION_UNSUPPORTED;
+
+    return method(_session, createInfo, handTracker);
+}
+
+XrResult OpenXRPlugin::DestroyHandTrackerEXT(XrHandTrackerEXT handTracker) {
+    PFN_xrDestroyHandTrackerEXT method = nullptr;
+    xrGetInstanceProcAddr(_instance, "xrDestroyHandTrackerEXT",
+                          reinterpret_cast<void (**)(void)>(&method));
+    if(method == nullptr) return XR_ERROR_FUNCTION_UNSUPPORTED;
+
+    return method(handTracker);
+}
+
+XrResult OpenXRPlugin::LocateHandJointsEXT(XrHandTrackerEXT handTracker, XrHandJointsLocateInfoEXT* locateInfo, XrHandJointLocationsEXT* jointLocations) {
+    PFN_xrLocateHandJointsEXT method = nullptr;
+    xrGetInstanceProcAddr(_instance, "xrLocateHandJointsEXT",
+                          reinterpret_cast<void (**)(void)>(&method));
+    if(method == nullptr) return XR_ERROR_FUNCTION_UNSUPPORTED;
+
+    return method(handTracker, locateInfo, jointLocations);
 }
 
 

@@ -232,9 +232,9 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glm::vec3 pos = glm::vec3(0, 0,-0.5f);
+    glm::vec3 pos = glm::vec3(0, 0,-2.0f);
     glm::quat rot = glm::quat(1,0,0,0);
-    glm::vec3 size = glm::vec3(0.5*16.0f/9.0f, 0.5*1.0f, 1.0f);
+    glm::vec3 size = glm::vec3(16.0f/9.0f, 1.0f, 1.0f);
     SpatialObject* spatialObject = new SpatialObject(pos, rot, size);
     glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
     delete spatialObject;
