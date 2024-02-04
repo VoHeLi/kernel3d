@@ -1,9 +1,10 @@
 #include "SpatialObject.h"
 
-SpatialObject::SpatialObject(glm::vec3 position, glm::quat rotation, glm::vec3 scale) {
+SpatialObject::SpatialObject(glm::vec3 position, glm::quat rotation, glm::vec3 scale, int textureId) {
     _position = position;
     _rotation = rotation;
     _scale = scale;
+    _textureId = textureId;
 }
 
 SpatialObject::~SpatialObject() {

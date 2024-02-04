@@ -144,7 +144,7 @@ GraphicsBackendManager::AllocateSwapchainImageStructs(uint32_t capacity, XrSwapc
     return swapchainImageBase;
 }
 
-void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat) {
+void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat, std::vector<SpatialObject*> sos) {
     //CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
     UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
 
@@ -175,7 +175,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     glm::quat rotation = glm::quat(cameraPos.orientation.w, cameraPos.orientation.x, cameraPos.orientation.y, cameraPos.orientation.z);
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
 
-    SpatialObject* camObj = new SpatialObject(position, rotation, scale);
+    SpatialObject* camObj = new SpatialObject(position, rotation, scale, 0);
     glm::mat4x4 viewMatrix = glm::inverse(camObj->getTransformationMatrix());
     delete camObj;
 
@@ -228,44 +228,22 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     glm::mat4x4 finalMatrix = projectionMatrix2 * viewMatrix;
     glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix));
 
-    glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glm::vec3 pos = glm::vec3(0, 0,-2.0f);
-    glm::quat rot = glm::quat(1,0,0,0);
-    glm::vec3 size = glm::vec3(16.0f/9.0f, 1.0f, 1.0f);
-    SpatialObject* spatialObject = new SpatialObject(pos, rot, size);
-    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
-    delete spatialObject;
+    for(SpatialObject* so : sos){
+        glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture1);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*so->getTransformationMatrix()));
 
-    pos = glm::vec3(-1.0f, 0,-0.7f);
-    rot = glm::quat(1,0,0,0);
-    size = glm::vec3(0.5f*1.0f, 0.5f*16.0f/9.0f, 1.0f);
-    spatialObject = new SpatialObject(pos, rot, size);
-    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
-    delete spatialObject;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, so->_textureId);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture2);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDisableVertexAttribArray(0);
+    }
 
-    pos = glm::vec3(1.0f, 0,-0.7f);
-    rot = glm::quat(1,0,0,0);
-    size = glm::vec3(0.5f*1.0f, 0.5f*16.0f/9.0f, 1.0f);
-    spatialObject = new SpatialObject(pos, rot, size);
-    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*spatialObject->getTransformationMatrix()));
-    delete spatialObject;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture3);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    glDisableVertexAttribArray(0);
 
     glUseProgram(0);
     //TODO RENDER REAL Objects

@@ -38,6 +38,10 @@
         <package android:name="org.dolphinemu.dolphinemu" />
         <package android:name="state.balls.io" />
         <package android:name="com.robtopx.geometryjump" />
+
+        <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker"/>
+        <package android:name="com.ultraleap.tracking.service"/>
+        <package android:name="com.ultraleap.openxr.api_layer"/>
     </queries>
 
     <application android:extractNativeLibs="false" android:requestLegacyExternalStorage="true"

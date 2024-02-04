@@ -94,5 +94,6 @@ XrResult tryGetBonePose(XrHandEXT handType, XrPosef* pose, uint32_t bone){ //TOD
 }
 
 XrTime getCurrentTime(){
+
     return lastTime;
 }

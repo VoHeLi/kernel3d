@@ -2,6 +2,7 @@
 
 #include "../openxr/openxr_platform.h"
 #include "GraphicsBackendManager.h"
+#include "SpatialObject.h"
 
 #include <vector>
 #include <map>
@@ -27,7 +28,8 @@ public:
 
     void PollActions();
 
-    void RenderFrame();
+    void PrepareRendering();
+    void RenderFrame(std::vector<SpatialObject*> sos);
 
 private:
     struct Swapchain {
@@ -44,6 +46,8 @@ private:
     XrSession _session;
     bool _sessionRunning = true;
     XrSpace _appSpace;
+    XrTime _currentTime;
+    XrFrameState _frameState;
 
     std::vector<XrViewConfigurationView> _configViews;
     std::vector<XrView> _views;
@@ -63,5 +67,5 @@ private:
 
 
     bool RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompositionLayerProjectionView>& projectionLayerViews,
-                     XrCompositionLayerProjection& layer);
+                     XrCompositionLayerProjection& layer, std::vector<SpatialObject*> sos);
 };

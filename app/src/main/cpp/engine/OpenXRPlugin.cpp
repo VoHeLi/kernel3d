@@ -292,8 +292,8 @@ void OpenXRPlugin::PollEvents(bool *exitRenderLoop, bool *requestRestart) {
     }
 
     //TODO OPTIMIZE CODE LOCATION
-    updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_LEFT_EXT);
-    updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_RIGHT_EXT);
+    /*updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_LEFT_EXT);
+    updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_RIGHT_EXT);*/
 }
 
 const XrEventDataBaseHeader *OpenXRPlugin::TryReadNextEvent() {
@@ -376,9 +376,11 @@ OpenXRPlugin::HandleSessionStateChangedEvent(XrEventDataSessionStateChanged stat
 
 void OpenXRPlugin::PollActions() {
     //TODO Enable Actions and poll
+    /*pdateHandJoints(getCurrentTime(), _appSpace, XR_HAND_LEFT_EXT);
+    updateHandJoints(getCurrentTime(), _appSpace, XR_HAND_RIGHT_EXT);*/
 }
 
-void OpenXRPlugin::RenderFrame() {
+void OpenXRPlugin::PrepareRendering(){
     XrFrameWaitInfo frameWaitInfo{XR_TYPE_FRAME_WAIT_INFO};
     XrFrameState frameState{XR_TYPE_FRAME_STATE};
     XrResult result = xrWaitFrame(_session, &frameWaitInfo, &frameState);
@@ -386,8 +388,18 @@ void OpenXRPlugin::RenderFrame() {
         __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitFrame ! : %d", result);
     }
 
+    _currentTime = frameState.predictedDisplayTime;
+    updateHandJoints(_currentTime, _appSpace, XR_HAND_LEFT_EXT);
+    updateHandJoints(_currentTime, _appSpace, XR_HAND_RIGHT_EXT);
+
+    _frameState = frameState;
+}
+
+void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos) {
+
+
     XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
-    result = xrBeginFrame(_session, &frameBeginInfo);
+    XrResult result = xrBeginFrame(_session, &frameBeginInfo);
     if(result < XR_SUCCESS){
         __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrWaitFrame ! : %d", result);
     }
@@ -395,14 +407,14 @@ void OpenXRPlugin::RenderFrame() {
     std::vector<XrCompositionLayerBaseHeader*> layers;
     XrCompositionLayerProjection layer{XR_TYPE_COMPOSITION_LAYER_PROJECTION};
     std::vector<XrCompositionLayerProjectionView> projectionLayerViews;
-    if (frameState.shouldRender == XR_TRUE) {
-        if (RenderLayer(frameState.predictedDisplayTime, projectionLayerViews, layer)) {
+    if (_frameState.shouldRender == XR_TRUE) {
+        if (RenderLayer(_frameState.predictedDisplayTime, projectionLayerViews, layer, sos)) {
             layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&layer));
         }
     }
 
     XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
-    frameEndInfo.displayTime = frameState.predictedDisplayTime;
+    frameEndInfo.displayTime = _frameState.predictedDisplayTime;
     frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND; //TODO CHANGE BLEND MODE
     frameEndInfo.layerCount = (uint32_t)layers.size();
     frameEndInfo.layers = layers.data();
@@ -413,7 +425,7 @@ void OpenXRPlugin::RenderFrame() {
 }
 
 bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompositionLayerProjectionView>& projectionLayerViews,
-                 XrCompositionLayerProjection& layer) {
+                 XrCompositionLayerProjection& layer, std::vector<SpatialObject*> sos) {
     XrResult res;
 
     XrViewState viewState{XR_TYPE_VIEW_STATE};
@@ -474,7 +486,7 @@ bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompos
         projectionLayerViews[i].subImage.imageRect.extent = {viewSwapchain.width, viewSwapchain.height};
 
         const XrSwapchainImageBaseHeader* const swapchainImage = _swapchainImages[viewSwapchain.handle][swapchainImageIndex];
-        _graphicsBackendManager->RenderView(projectionLayerViews[i], swapchainImage, _colorSwapchainFormat);
+        _graphicsBackendManager->RenderView(projectionLayerViews[i], swapchainImage, _colorSwapchainFormat, sos);
 
         XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
         res = xrReleaseSwapchainImage(viewSwapchain.handle, &releaseInfo);

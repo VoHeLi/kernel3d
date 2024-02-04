@@ -14,6 +14,7 @@
 #include "../controllers/handtracking_inputs.h"
 #include "../glm/vec3.hpp"
 #include "../glm/geometric.hpp"
+#include "SpatialObject.h"
 
 Engine::Engine(JNIEnv* jniEnv, jobject activity){
     _jniActivityEnv = jniEnv;
@@ -97,6 +98,22 @@ void Engine::engineMain() {
     initializeHands(openXrPlugin);
 
     intentTest(graphicsBackendManager->GetDisplayTexture(1), 1);
+
+    glm::vec3 pos = glm::vec3(0, 0,-2.0f);
+    glm::quat rot = glm::quat(1,0,0,0);
+    glm::vec3 size = glm::vec3(16.0f/9.0f, 1.0f, 1.0f);
+    SpatialObject* appDisplay = new SpatialObject(pos, rot,  size, graphicsBackendManager->GetDisplayTexture(1));
+
+    glm::vec3 pos2 = glm::vec3(0, 0,-1.99f);
+    glm::quat rot2 = glm::quat(1,0,0,0);
+    glm::vec3 size2 = glm::vec3(0.02f, 0.02f, 1.0f);
+    SpatialObject* pointerDisplay = new SpatialObject(pos2, rot2,  size2, 0);
+
+    std::vector<SpatialObject*> spatialObjects;
+    spatialObjects.push_back(appDisplay);
+    spatialObjects.push_back(pointerDisplay);
+
+
     /*intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
     intentTest(graphicsBackendManager->GetDisplayTexture(3), 3);*/
     while (!_destroyed) {
@@ -140,24 +157,40 @@ void Engine::engineMain() {
 
         openXrPlugin->PollActions();
 
+        openXrPlugin->PrepareRendering();
+
         //Hand tracking test TODO REMOVE
         XrPosef indexTipPose;
         XrPosef thumbTipPose;
+        XrPosef palmPose;
         tryGetBonePose(XR_HAND_RIGHT_EXT, &indexTipPose, XR_HAND_JOINT_INDEX_TIP_EXT);
         tryGetBonePose(XR_HAND_RIGHT_EXT, &thumbTipPose, XR_HAND_JOINT_THUMB_TIP_EXT);
+        tryGetBonePose(XR_HAND_RIGHT_EXT, &palmPose, XR_HAND_JOINT_PALM_EXT);
 
         glm::vec3 indexTipPos = glm::vec3(indexTipPose.position.x, indexTipPose.position.y, indexTipPose.position.z);
         glm::vec3 thumbTipPos = glm::vec3(thumbTipPose.position.x, thumbTipPose.position.y, thumbTipPose.position.z);
+        glm::vec3 palmPos = glm::vec3(palmPose.position.x, palmPose.position.y, palmPose.position.z);
 
         float pinchDist = glm::distance(indexTipPos, thumbTipPos);
 
-        bool pinching = pinchDist <= 0.04f;
+        bool pinching = pinchDist <= 0.03f;
 
         __android_log_print(ANDROID_LOG_DEBUG, "AndroxKernel3D", "PinchDist : %.6f", pinchDist);
 
-        updateSurfaceTexture(!pinching);
+        float cx = 4.0f*(palmPos.x-0.15f);
+        float cy = 4.0f*(palmPos.y+0.15f);
 
-        openXrPlugin->RenderFrame();
+        pointerDisplay->_position = glm::vec3(cx, cy, -1.99f);
+
+        //appDisplay->_position = thumbTipPos + glm::vec3(0.0f,0.0f, -1.0f);
+
+        updateSurfaceTexture(!pinching, cx, cy);
+
+        openXrPlugin->RenderFrame(spatialObjects);
+    }
+
+    for(SpatialObject* so : spatialObjects){
+        delete so;
     }
 
     destroyHands();
@@ -173,7 +206,7 @@ void Engine::intentTest(int displayTextureId, int app) {
     _jniEngineEnv->CallVoidMethod(_activity, launchTestMethod, displayTextureId, app);
 }
 
-void Engine::updateSurfaceTexture(bool pinching){
-    jmethodID updateTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "updateDisplayTexture", "(Z)V");
-    _jniEngineEnv->CallVoidMethod(_activity, updateTestMethod, pinching);
+void Engine::updateSurfaceTexture(bool pinching, float cx, float cy){
+    jmethodID updateTestMethod = _jniEngineEnv->GetMethodID(_jniEngineEnv->GetObjectClass(_activity), "updateDisplayTexture", "(ZFF)V");
+    _jniEngineEnv->CallVoidMethod(_activity, updateTestMethod, pinching, cx, cy);
 }

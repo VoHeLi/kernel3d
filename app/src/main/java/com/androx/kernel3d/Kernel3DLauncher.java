@@ -105,7 +105,7 @@ public class Kernel3DLauncher extends Activity {
 
     @Override
     protected void onPause(){
-        //super.onPause();
+        super.onPause();
 
         //pause();
         //TODO Pause Update
@@ -113,7 +113,7 @@ public class Kernel3DLauncher extends Activity {
 
     @Override
     protected void onStop(){
-        //super.onStop();
+        super.onStop();
         //stop();
         //TODO UNLOAD
     }
@@ -172,6 +172,9 @@ public class Kernel3DLauncher extends Activity {
     SurfaceTexture surfaceTexture2;
     SurfaceTexture surfaceTexture3;
     public void intentTest(int displayTextureId, int appId) throws InterruptedException {
+
+
+
         Log.d("Androx Kernel3D", "Java method called! " + displayTextureId);
 
         String packageName2 = "com.studio501.canvasrun";
@@ -206,9 +209,7 @@ public class Kernel3DLauncher extends Activity {
         Log.d("Androx Kernel3D", "Java method A!");
         if (intent != null) {
             // Si une intention est trouvée, lancez l'application
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.setFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
 
 
             Log.d("Androx Kernel3D", "Java method B!");
@@ -222,14 +223,17 @@ public class Kernel3DLauncher extends Activity {
             options.setLaunchDisplayId(id);
             //intent.putExtra("android.intent.extra.DISPLAY_ID", id);
 
-
+            //Thread.sleep(10000);
+            //getIntent().putExtra("AndroxUnstoppable", true);
             Log.d("Androx Kernel3D", "launching App!");
             startActivity(intent, options.toBundle());
 
+
             Log.d("Androx Kernel3D", "after launching App!");
-            Thread.sleep(2000);
+            //Thread.sleep(1000);
             Log.d("Androx Kernel3D", "after sleep");
             surfaceTexture.updateTexImage();
+
             Log.d("Androx Kernel3D", "after updating texture!");
 
         } else {
@@ -245,13 +249,15 @@ public class Kernel3DLauncher extends Activity {
 
     InputManager im = ((InputManager) Class.forName("android.hardware.input.InputManager").getDeclaredMethod("getInstance", new Class[0]).invoke((Object) null, new Object[0]));
 
-    public void updateDisplayTexture(boolean pinching){
+    public void updateDisplayTexture(boolean pinching, float cx, float cy){
+
+        //Log.d("Androx Kernel3D", "CX : " + cx +" CY : " + cy);
 
         //Touch the screen in the middle
         MotionEvent.PointerCoords[] pointerCoordsArr = new MotionEvent.PointerCoords[1];
         pointerCoordsArr[0]  = new MotionEvent.PointerCoords();
-        pointerCoordsArr[0].x = 1280/2;
-        pointerCoordsArr[0].y = 300;
+        pointerCoordsArr[0].x = 720*cx + 640;
+        pointerCoordsArr[0].y = 720-(720*cy + 360);
         pointerCoordsArr[0].pressure = 1.0f;
         pointerCoordsArr[0].size = 1.0f;
         int currentAction = getCurrentAction(pinching);
