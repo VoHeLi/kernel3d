@@ -175,7 +175,7 @@ void Engine::engineMain() {
 
         bool pinching = pinchDist <= 0.03f;
 
-        __android_log_print(ANDROID_LOG_DEBUG, "AndroxKernel3D", "PinchDist : %.6f", pinchDist);
+        //__android_log_print(ANDROID_LOG_DEBUG, "AndroxKernel3D", "PinchDist : %.6f", pinchDist);
 
         float cx = 4.0f*(palmPos.x-0.15f);
         float cy = 4.0f*(palmPos.y+0.15f);

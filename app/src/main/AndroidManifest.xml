@@ -24,6 +24,7 @@
     <uses-permission android:name="android.permission.INJECT_EVENTS"/>
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"/>
     <uses-permission android:name="android.permission.PACKAGE_FIRST_LAUNCH"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <uses-feature android:name="android.hardware.touchscreen.multitouch" android:required="false"/>
     <uses-feature android:name="android.hardware.touchscreen.multitouch.distinct" android:required="false"/>
@@ -38,13 +39,16 @@
         <package android:name="org.dolphinemu.dolphinemu" />
         <package android:name="state.balls.io" />
         <package android:name="com.robtopx.geometryjump" />
+        <package android:name="com.vrchat.android" />
+        <package android:name="cm.aptoide.pt"/>
+        <package android:name="com.miHoYo.GenshinImpact"/>
 
         <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker"/>
         <package android:name="com.ultraleap.tracking.service"/>
         <package android:name="com.ultraleap.openxr.api_layer"/>
     </queries>
 
-    <application android:extractNativeLibs="false" android:requestLegacyExternalStorage="true"
+    <application android:extractNativeLibs="true" android:requestLegacyExternalStorage="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -65,7 +69,10 @@
                     <category android:name="com.htc.intent.category.VRAPP"/>
                 </intent-filter>
                 <meta-data android:name="android.notch_support" android:value="true"/>
-            </activity>
-        </application>
+        </activity>
+
+        <service android:name=".PicoreurService">
+        </service>
+    </application>
 
     </manifest>

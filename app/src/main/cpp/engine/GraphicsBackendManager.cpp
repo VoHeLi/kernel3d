@@ -203,7 +203,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
             0, 0, -(2*f*n)/(f-n), 0
     };
 
-    __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "%.6f %.6f %.6f %.6f", layerView.fov.angleLeft, layerView.fov.angleRight, layerView.fov.angleUp, layerView.fov.angleDown);
+    //__android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "%.6f %.6f %.6f %.6f", layerView.fov.angleLeft, layerView.fov.angleRight, layerView.fov.angleUp, layerView.fov.angleDown);
 
     /*glm::mat4x4 testMatrix = glm::mat4x4{
             2/(r-l), 0, 0, 10,
@@ -217,7 +217,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     //TODO REMOVE DEBUG
 
     // Clear swapchain and depth buffer.
-    glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     //glClearDepthf(1.0f);
     glClear(GL_COLOR_BUFFER_BIT); //debug
 

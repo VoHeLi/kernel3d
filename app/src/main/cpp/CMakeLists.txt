@@ -9,8 +9,10 @@ cmake_minimum_required(VERSION 3.22.1)
 # Declares the project name. The project name can be accessed via ${ PROJECT_NAME},
 # Since this is the top level CMakeLists.txt, the project name is also accessible
 # with ${CMAKE_PROJECT_NAME} (both CMake variables are in-sync within the top level
-# build script scope).
+# build script scope).éé
 project("kernel3d")
+
+include_directories(".")
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
@@ -33,6 +35,14 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
 
+add_library(runtime SHARED
+        oxr_runtime/android_globals.cpp oxr_runtime/oxr_api_debug.cpp oxr_runtime/oxr_api_swapchain.cpp oxr_runtime/oxr_api_action.cpp oxr_runtime/oxr_api_space.cpp
+        oxr_runtime/oxr_api_session.cpp oxr_runtime/oxr_api_system.cpp oxr_runtime/oxr_path.cpp oxr_runtime/oxr_api_verify.cpp oxr_runtime/oxr_api_instance.cpp
+        oxr_runtime/oxr_api_negotiate.cpp oxr_runtime/mirage_binder.cpp)
+
+add_library(mirage SHARED
+        mirage_app/mirage_utils.cpp mirage_app/mirage_loader.cpp mirage_app/mirage_main.cpp mirage_app/platformplugin.cpp)
+
 add_library(openxr_loader SHARED IMPORTED)
 set_target_properties(openxr_loader PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/arm64-v8a/libopenxr_loader.so)
 
@@ -44,3 +54,17 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     log
     openxr_loader
     )
+
+target_link_libraries(runtime
+        android
+        log
+        EGL
+        GLESv3
+        )
+
+target_link_libraries(mirage
+        android
+        log
+        EGL
+        GLESv3
+        )
