@@ -50,7 +50,7 @@ void mirageServer(){
 
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Binding error to %s", SOCKET_PATH);
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "ERRNO : %d", errno);
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ERRNO : %d", errno);
         exit(EXIT_FAILURE);
     }
 
@@ -58,7 +58,7 @@ void mirageServer(){
     // Listen for incoming connections
     if (listen(server_fd, 5) == -1) {
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Listening error");
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "ERRNO : %d", errno);
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ERRNO : %d", errno);
         exit(EXIT_FAILURE);
     }
 
@@ -71,31 +71,63 @@ void mirageServer(){
     sockaddr_un client_addr;
     if ((client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &client_len)) == -1) {
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Accept error");
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "ERRNO : %d", errno);
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ERRNO : %d", errno);
         exit(EXIT_FAILURE);
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Connection accepted!");
 
-    struct cmsghdr cheader = {
-            .cmsg_len = CMSG_LEN(sizeof(fd)),
-            .cmsg_level = SOL_SOCKET,
-            .cmsg_type = SCM_RIGHTS,
-    };
+    union {
+        char   buf[CMSG_SPACE(sizeof(int))];
+        /* Space large enough to hold an 'int' */
+        struct cmsghdr align;
+    } controlMsg;
 
-    struct msghdr header = {
-        .msg_control = &cheader,
-        .msg_controllen = sizeof(fd),
-    };
+    struct msghdr msgh;
+    msgh.msg_name = NULL;
+    msgh.msg_namelen = 0;
 
-    if (sendmsg(client_fd, &header, 0) == -1) {
+    /* On Linux, we must transmit at least 1 byte of real data in
+       order to send ancillary data */
+
+    struct iovec iov;
+    int data = 12345;
+
+    msgh.msg_iov = &iov;
+    msgh.msg_iovlen = 1;
+    iov.iov_base = &data;
+    iov.iov_len = sizeof(data);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Sending data = %d", data);
+
+    msgh.msg_control = controlMsg.buf;
+    msgh.msg_controllen = sizeof(controlMsg.buf);
+
+
+    memset(controlMsg.buf, 0, sizeof(controlMsg.buf));
+
+    struct cmsghdr *cmsgp = CMSG_FIRSTHDR(&msgh);
+    cmsgp->cmsg_len = CMSG_LEN(sizeof(int));
+    cmsgp->cmsg_level = SOL_SOCKET;
+    cmsgp->cmsg_type = SCM_RIGHTS;
+    memcpy(CMSG_DATA(cmsgp), &fd, sizeof(int));
+
+    if (sendmsg(client_fd, &msgh, 0) == -1) {
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Sendmsg error");
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "ERRNO : %d", errno);
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ERRNO : %d", errno);
         exit(EXIT_FAILURE);
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "MSG Sent!");
 
+    sleep(10);
+
+    // Fermeture des sockets
+    close(client_fd);
+    close(server_fd);
+    close(fd);
+
+    // Supprimer le fichier de socket
+    unlink(SOCKET_PATH);
 }
 
 std::thread appThread;

@@ -9,33 +9,97 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/socket.h>
+#include <linux/un.h>
 
-char* readFromFile(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        return NULL;
+#define SOCKET_PATH "\0mirage_service_listener"
+
+int getFd(const char* filename) {
+    int client_fd;
+    struct sockaddr_un server_addr;
+    long long fd;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Getting FD from binder...");
+
+    // Création du socket
+    if ((client_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Client Socket error");
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "ERRNO : %d", errno);
+        exit(EXIT_FAILURE);
     }
 
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Socket created!");
 
-    char* buffer = (char*)malloc(fileSize + 1);
-    if (buffer == NULL) {
-        fclose(file);
-        return NULL;
+    // Configuration de l'adresse du serveur
+    memset(&server_addr, 0, sizeof(struct sockaddr_un));
+    server_addr.sun_family = AF_UNIX;
+    strncpy(server_addr.sun_path, SOCKET_PATH, sizeof(server_addr.sun_path) - 1);
+
+    // Connexion au serveur
+    if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_un)) == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Connect error");
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "ERRNO : %d", errno);
+        exit(EXIT_FAILURE);
     }
 
-    size_t bytesRead = fread(buffer, 1, fileSize, file);
-    fclose(file);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Connected!");
 
-    if (bytesRead < fileSize) {
-        free(buffer);
-        return NULL;
+//    // Réception du descripteur de fichier du serveur
+//    struct msghdr msg = {0};
+//    char cmsgbuf[CMSG_SPACE(sizeof(fd))];
+//    struct iovec io = {.iov_base = malloc(1), .iov_len = 1};
+//    msg.msg_iov = &io;
+//    msg.msg_iovlen = 1;
+//    msg.msg_control = cmsgbuf;
+//    msg.msg_controllen = sizeof(cmsgbuf);
+
+    struct msghdr msg;
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+
+    struct iovec iov;
+    int data;
+
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+    iov.iov_base = &data;
+    iov.iov_len = sizeof(data);
+
+    union {
+        char   buf[CMSG_SPACE(sizeof(int))];
+        /* Space large enough to hold an 'int' */
+        struct cmsghdr align;
+    } controlMsg;
+
+    msg.msg_control = controlMsg.buf;
+    msg.msg_controllen = sizeof(controlMsg.buf);
+
+    if (recvmsg(client_fd, &msg, 0) == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "RECVMSG error");
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "ERRNO : %d", errno);
+        exit(EXIT_FAILURE);
     }
 
-    buffer[bytesRead] = '\0'; // Null-terminate the string
-    return buffer;
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MSG Received : %d", data);
+
+
+
+    // Récupérer le descripteur de fichier
+    struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+    if (cmsg == NULL || cmsg->cmsg_type != SCM_RIGHTS) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Invalid CMSG error");
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "ERRNO : %d", errno);
+        exit(EXIT_FAILURE);
+    }
+    memcpy(&fd, CMSG_DATA(cmsg), sizeof(fd));
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got FD : %d", fd);
+
+    // Fermeture du descripteur de fichier
+    close(client_fd);
+    //close(fd);
+
+    return fd;
 }
 
 
@@ -45,57 +109,27 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz){
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstance");
 
-//     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Binding to Mirage Service...");
-//
-//    JNIEnv* env;
-//    android_globals_get_vm()->GetEnv((void**)&env, JNI_VERSION_1_6);
-//
-//    jclass contextClass = env->FindClass("android/content/Context");
-//    jmethodID getSystemServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-//    jobject context = (jobject)android_globals_get_context();
-//    jstring serviceName = env->NewStringUTF("com.androx.kernel3d.PicoreurService");
-//    jobject service = env->CallObjectMethod(context, getSystemServiceMethod, serviceName);
-//
-//    sleep(1); //DEBUG
-//
-//    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Bound to Mirage Service!");
-
-    const char* dataFD = readFromFile("/storage/self/primary/testAppFD.data");
-
-    int fd = atoi(dataFD);
+    int fd = getFd(SOCKET_PATH);
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got fd : %d", fd);
 
     size_t memSize = ASharedMemory_getSize(fd);
-    char *buffer = (char *) mmap(NULL, 16, PROT_READ, MAP_SHARED, fd, 0);
+    char *buffer = (char *) mmap(NULL, 128, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ERRNO : %d", errno);
     //char a = buffer[0];
 
-//    char* testStr = (char*)malloc(65);
-//    memcpy(testStr, buffer, 64);
-//    testStr[64] = 0;
+    char* testStr = (char*)malloc(65);
+    memcpy(testStr, buffer, 64);
+    testStr[64] = 0;
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %d, %d, %d, %d", buffer[0], buffer[1], buffer[2], buffer[3]);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %s", testStr);
 
     //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %s", testStr);
 
     //kill(5373, SIGKILL);
 
-    //Binding to MirageService
-//    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Binding to Mirage Service...");
-//
-//    JNIEnv* env;
-//    android_globals_get_vm()->GetEnv((void**)&env, JNI_VERSION_1_6);
-//
-//    jclass contextClass = env->FindClass("android/content/Context");
-//    jmethodID getSystemServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-//    jobject context = (jobject)android_globals_get_context();
-//    jstring serviceName = env->NewStringUTF("com.androx.kernel3d.PicoreurService");
-//    jobject service = env->CallObjectMethod(context, getSystemServiceMethod, serviceName);
-//
-//
-//    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Bound to Mirage Service!");
+    close(fd);
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstanceEnd");
 
