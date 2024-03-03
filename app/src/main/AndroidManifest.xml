@@ -71,7 +71,7 @@
                 <meta-data android:name="android.notch_support" android:value="true"/>
         </activity>
 
-        <service android:name=".PicoreurService">
+        <service android:name=".MirageService">
         </service>
     </application>
 

@@ -4,6 +4,7 @@
 #include <jni.h>
 
 #include "oxr_runtime/android_globals.h"
+#include <stdio.h>
 
 void hideNavigationBar(JavaVM* vm, jobject context) {
     //android_globals_get_window();
@@ -38,3 +39,6 @@ void hideNavigationBar(JavaVM* vm, jobject context) {
 
     //vm->DetachCurrentThread();
 }
+
+
+

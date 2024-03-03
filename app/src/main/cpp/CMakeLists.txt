@@ -41,10 +41,14 @@ add_library(runtime SHARED
         oxr_runtime/oxr_api_negotiate.cpp oxr_runtime/mirage_binder.cpp)
 
 add_library(mirage SHARED
-        mirage_app/mirage_utils.cpp mirage_app/mirage_loader.cpp mirage_app/mirage_main.cpp mirage_app/platformplugin.cpp)
+        mirage_app/mirage_utils.cpp mirage_app/mirage_loader.cpp mirage_app/mirage_main.cpp mirage_app/platformplugin.cpp mirage_app/mirage_service.cpp)
 
 add_library(openxr_loader SHARED IMPORTED)
+
 set_target_properties(openxr_loader PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/arm64-v8a/libopenxr_loader.so)
+
+#add_library(cutils SHARED IMPORTED)
+#set_target_properties(cutils PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/arm64-v8a/libcutils.so)
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
     # List libraries link to the target library
@@ -60,6 +64,7 @@ target_link_libraries(runtime
         log
         EGL
         GLESv3
+        #cutils
         )
 
 target_link_libraries(mirage
@@ -67,4 +72,5 @@ target_link_libraries(mirage
         log
         EGL
         GLESv3
+        #cutils
         )

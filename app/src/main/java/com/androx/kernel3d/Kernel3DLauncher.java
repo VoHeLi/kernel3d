@@ -2,12 +2,10 @@ package com.androx.kernel3d;
 
 import android.app.Activity;
 import android.app.ActivityOptions;
-import android.app.Application;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.SurfaceTexture;
 import android.hardware.display.DisplayManager;
@@ -27,22 +25,11 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 
-import android.app.ActivityManager;
-
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.security.Provider;
-import java.util.Objects;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresPermission;
-import androidx.core.util.Consumer;
 
-public class Kernel3DLauncher extends Activity implements ServiceConnection {
+public class Kernel3DLauncher extends Activity{
 
     static {
         System.loadLibrary("kernel3d");
@@ -62,6 +49,9 @@ public class Kernel3DLauncher extends Activity implements ServiceConnection {
     public native int stop();
 
     public native int destroyNativeWindow();
+
+    private boolean isBound = false;
+    private MirageService mirageService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,16 +84,15 @@ public class Kernel3DLauncher extends Activity implements ServiceConnection {
         setContentView(surfaceView);
     }
 
-    private PicoreurService mBinder;
+    private MirageService mBinder;
 
     @Override
     protected void onStart() {
         super.onStart();
 
         //STARTING RUNTIME SERVICE : TODO PLACE THIS SOMEWHERE ELSE
-        Intent intent = new Intent(this, PicoreurService.class);
-        bindService(intent, this, Context.BIND_AUTO_CREATE);
-
+        Intent intent = new Intent(this, MirageService.class);
+        bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
         start();
         //TODO LOAD
@@ -248,8 +237,17 @@ public class Kernel3DLauncher extends Activity implements ServiceConnection {
             //intent.putExtra("android.intent.extra.DISPLAY_ID", id);
 
             //Thread.sleep(10000);
-            //intent.putExtra("AndroxUnstoppable", true);
+            intent.putExtra("AndroxUnstoppable", true);
             getIntent().putExtra("AndroxUnstoppable", true);
+
+            //mirageCreateAppListener
+            while(mirageService == null){
+                Thread.sleep(10000);
+            }
+
+            mirageService.createAppListener();
+            //getIntent().putExtra("MirageAppListenerFD", fd);
+
             Log.d("Androx Kernel3D", "launching App!");
             startActivity(intent, options.toBundle());
 
@@ -324,14 +322,19 @@ public class Kernel3DLauncher extends Activity implements ServiceConnection {
         }
     }
 
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+    private final ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder ibinder) {
+            Log.d("Androx Kernel3D", "Alert service connected!");
+            MirageService.MirageBinder binder = (MirageService.MirageBinder) ibinder;
+            mirageService = binder.getService();
+            isBound = true;
+        }
 
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-
-    }
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            isBound = false;
+        }
+    };
 
 }

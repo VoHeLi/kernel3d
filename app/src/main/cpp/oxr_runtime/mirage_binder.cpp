@@ -1,27 +1,103 @@
 #include "mirage_binder.h"
 #include "android_globals.h"
 #include <android/log.h>
+#include <string.h>
+#include <android/sharedmem.h>
+#include <android/sharedmem_jni.h>
+#include <sys/mman.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+
+char* readFromFile(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* buffer = (char*)malloc(fileSize + 1);
+    if (buffer == NULL) {
+        fclose(file);
+        return NULL;
+    }
+
+    size_t bytesRead = fread(buffer, 1, fileSize, file);
+    fclose(file);
+
+    if (bytesRead < fileSize) {
+        free(buffer);
+        return NULL;
+    }
+
+    buffer[bytesRead] = '\0'; // Null-terminate the string
+    return buffer;
+}
+
 
 XrResult initializeMirageAppInstance(void* vm, void* clazz){
 
 
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "InitializeMirageAppInstance");
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstance");
+
+//     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Binding to Mirage Service...");
+//
+//    JNIEnv* env;
+//    android_globals_get_vm()->GetEnv((void**)&env, JNI_VERSION_1_6);
+//
+//    jclass contextClass = env->FindClass("android/content/Context");
+//    jmethodID getSystemServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+//    jobject context = (jobject)android_globals_get_context();
+//    jstring serviceName = env->NewStringUTF("com.androx.kernel3d.PicoreurService");
+//    jobject service = env->CallObjectMethod(context, getSystemServiceMethod, serviceName);
+//
+//    sleep(1); //DEBUG
+//
+//    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Bound to Mirage Service!");
+
+    const char* dataFD = readFromFile("/storage/self/primary/testAppFD.data");
+
+    int fd = atoi(dataFD);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got fd : %d", fd);
+
+    size_t memSize = ASharedMemory_getSize(fd);
+    char *buffer = (char *) mmap(NULL, 16, PROT_READ, MAP_SHARED, fd, 0);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ERRNO : %d", errno);
+    //char a = buffer[0];
+
+//    char* testStr = (char*)malloc(65);
+//    memcpy(testStr, buffer, 64);
+//    testStr[64] = 0;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %d, %d, %d, %d", buffer[0], buffer[1], buffer[2], buffer[3]);
+
+    //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %s", testStr);
+
+    //kill(5373, SIGKILL);
 
     //Binding to MirageService
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR", "Binding to Mirage Service...");
+//    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Binding to Mirage Service...");
+//
+//    JNIEnv* env;
+//    android_globals_get_vm()->GetEnv((void**)&env, JNI_VERSION_1_6);
+//
+//    jclass contextClass = env->FindClass("android/content/Context");
+//    jmethodID getSystemServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+//    jobject context = (jobject)android_globals_get_context();
+//    jstring serviceName = env->NewStringUTF("com.androx.kernel3d.PicoreurService");
+//    jobject service = env->CallObjectMethod(context, getSystemServiceMethod, serviceName);
+//
+//
+//    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Bound to Mirage Service!");
 
-    JNIEnv* env;
-    android_globals_get_vm()->GetEnv((void**)&env, JNI_VERSION_1_6);
-
-    jclass contextClass = env->FindClass("android/content/Context");
-    jmethodID getSystemServiceMethod = env->GetMethodID(contextClass, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-    jobject context = (jobject)android_globals_get_context();
-    jstring serviceName = env->NewStringUTF("com.androx.kernel3d.PicoreurService");
-    jobject service = env->CallObjectMethod(context, getSystemServiceMethod, serviceName);
-
-
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR", "Bound to Mirage Service!");
-
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstanceEnd");
 
     return XR_ERROR_VALIDATION_FAILURE;
 
