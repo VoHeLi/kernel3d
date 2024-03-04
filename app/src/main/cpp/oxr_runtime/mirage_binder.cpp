@@ -44,14 +44,7 @@ int getFd(const char* filename) {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Connected!");
 
-//    // Réception du descripteur de fichier du serveur
-//    struct msghdr msg = {0};
-//    char cmsgbuf[CMSG_SPACE(sizeof(fd))];
-//    struct iovec io = {.iov_base = malloc(1), .iov_len = 1};
-//    msg.msg_iov = &io;
-//    msg.msg_iovlen = 1;
-//    msg.msg_control = cmsgbuf;
-//    msg.msg_controllen = sizeof(cmsgbuf);
+    // Réception du message
 
     struct msghdr msg;
     msg.msg_name = NULL;
@@ -81,7 +74,6 @@ int getFd(const char* filename) {
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MSG Received : %d", data);
-
 
 
     // Récupérer le descripteur de fichier
@@ -114,27 +106,22 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz){
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got fd : %d", fd);
 
     size_t memSize = ASharedMemory_getSize(fd);
-    char *buffer = (char *) mmap(NULL, 128, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    sharedMemoryBuffer = (char *) mmap(NULL, STC_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ERRNO : %d", errno);
-    //char a = buffer[0];
 
     char* testStr = (char*)malloc(65);
-    memcpy(testStr, buffer, 64);
+    memcpy(testStr, sharedMemoryBuffer, 64);
     testStr[64] = 0;
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %s", testStr);
 
-    //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %s", testStr);
 
-    //kill(5373, SIGKILL);
 
-    close(fd);
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstanceEnd");
 
-    return XR_ERROR_VALIDATION_FAILURE;
-
+    return XR_SUCCESS;
+    //TODO LATER close(fd);
 }
 
 XrResult destroyMirageInstance(){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}

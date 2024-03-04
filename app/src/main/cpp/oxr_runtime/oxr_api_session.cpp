@@ -22,7 +22,6 @@
 #include "oxr_api_verify.h"
 #include "oxr_chain.h"
 
-#include "mirage_app/mirage_main.h"
 
 XRAPI_ATTR XrResult XRAPI_CALL
 xrCreateSession(XrInstance instance, const XrSessionCreateInfo *createInfo, XrSession *out_session) //PASS

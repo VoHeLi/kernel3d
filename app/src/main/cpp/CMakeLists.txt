@@ -41,7 +41,7 @@ add_library(runtime SHARED
         oxr_runtime/oxr_api_negotiate.cpp oxr_runtime/mirage_binder.cpp)
 
 add_library(mirage SHARED
-        mirage_app/mirage_utils.cpp mirage_app/mirage_loader.cpp mirage_app/mirage_main.cpp mirage_app/platformplugin.cpp mirage_app/mirage_service.cpp)
+        mirage_app/mirage_service.cpp mirage_app/mirage_app_server.cpp)
 
 add_library(openxr_loader SHARED IMPORTED)
 
