@@ -22,6 +22,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include "mirage_shared/shared_memory_descriptor.h"
+
 #define SOCKET_PATH "\0mirage_service_listener" //TODO : Change this to a more unique name per app
 #define STC_MEMORY_SIZE 1048576
 

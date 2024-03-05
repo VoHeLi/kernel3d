@@ -109,12 +109,7 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz){
     sharedMemoryBuffer = (char *) mmap(NULL, STC_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 
-    char* testStr = (char*)malloc(65);
-    memcpy(testStr, sharedMemoryBuffer, 64);
-    testStr[64] = 0;
-
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Reading : %s", testStr);
-
+    //Store XRInstance in shared memory
 
 
 

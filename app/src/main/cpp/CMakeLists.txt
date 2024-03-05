@@ -38,10 +38,12 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
 add_library(runtime SHARED
         oxr_runtime/android_globals.cpp oxr_runtime/oxr_api_debug.cpp oxr_runtime/oxr_api_swapchain.cpp oxr_runtime/oxr_api_action.cpp oxr_runtime/oxr_api_space.cpp
         oxr_runtime/oxr_api_session.cpp oxr_runtime/oxr_api_system.cpp oxr_runtime/oxr_path.cpp oxr_runtime/oxr_api_verify.cpp oxr_runtime/oxr_api_instance.cpp
-        oxr_runtime/oxr_api_negotiate.cpp oxr_runtime/mirage_binder.cpp)
+        oxr_runtime/oxr_api_negotiate.cpp oxr_runtime/mirage_binder.cpp
+        mirage_shared/shared_memory_descriptor.cpp)
 
 add_library(mirage SHARED
-        mirage_app/mirage_service.cpp mirage_app/mirage_app_server.cpp)
+        mirage_app/mirage_service.cpp mirage_app/mirage_app_server.cpp
+        mirage_shared/shared_memory_descriptor.cpp)
 
 add_library(openxr_loader SHARED IMPORTED)
 
