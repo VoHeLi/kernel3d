@@ -1,5 +1,7 @@
 #include "mirage_app_server.h"
-
+#include "mirage_shared/XrInstanceDescriptor.h"
+#include <chrono>
+#include <ctime>
 
 mirage_app_server::mirage_app_server() {
     _isAccessible = false;
@@ -24,8 +26,7 @@ void mirage_app_server::destroyServerThread() {
 }
 
 XrInstance mirage_app_server::getInstance() {
-    //TODO: Implement this
-    return nullptr;
+    return (XrInstance)_sharedMemoryDescriptor->get_instance_ptr();
 }
 
 bool mirage_app_server::isAccessible() {
@@ -33,12 +34,19 @@ bool mirage_app_server::isAccessible() {
 }
 
 void mirage_app_server::initializeSharedMemory() {
-    _sharedMemoryFD = ASharedMemory_create("serverToClientMemory", STC_MEMORY_SIZE);
+    _sharedMemoryFD = ASharedMemory_create("serverToClientMemory", sizeof(shared_memory_descriptor));
 
-    _sharedMemoryPtr = (char *) mmap(NULL, STC_MEMORY_SIZE, PROT_WRITE | PROT_READ, MAP_SHARED, _sharedMemoryFD, 0);
+    char* sharedMemoryPtr = (char *) mmap(NULL, sizeof(shared_memory_descriptor), PROT_WRITE | PROT_READ, MAP_SHARED, _sharedMemoryFD, 0);
 
-    //DEBUG WRITE TO SHARED MEMORY
-    strcpy(_sharedMemoryPtr, "This is an example."); //TODO : Remove this line
+    _sharedMemoryDescriptor = new(sharedMemoryPtr) shared_memory_descriptor(); //(shared_memory_descriptor*) sharedMemoryPtr;
+    _sharedMemoryDescriptor->memory_init_server();
+
+//    char* debugStr = (char*)_sharedMemoryDescriptor->memory_allocate(128);
+//    strcpy(debugStr, "Hello from server!");
+
+    //_sharedMemoryDescriptor->set_instance_ptr((void*)debugStr);
+
+    //_sharedMemoryDescriptor->memory_free(debugStr);
 
     ASharedMemory_setProt(_sharedMemoryFD, PROT_READ | PROT_WRITE);
 }
@@ -96,6 +104,33 @@ void mirage_app_server::sendFDToClient(int fd) {
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ERRNO : %d", errno);
         exit(EXIT_FAILURE);
     }
+}
+
+double lastTime = 0;
+
+void mirage_app_server::debugLog() {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+
+    // Convertir le temps actuel en secondes sous forme de valeur flottante
+    std::chrono::duration<double> duration = currentTime.time_since_epoch();
+    double seconds = duration.count();
+
+    if(seconds - lastTime < 1) {
+        return;
+    }
+    lastTime = seconds;
+
+    XrInstanceDescriptor* instanceDescriptor = CTSM(_sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Getting info on instance : %p, shared memory loc : %p", instanceDescriptor, _sharedMemoryDescriptor);
+
+    if(instanceDescriptor == nullptr) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Instance info : NULL");
+        return;
+    }
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Instance info : %s", CTSM(CTSM(CTSM(instanceDescriptor->createInfo, XrInstanceCreateInfo*)->enabledExtensionNames, char**)[0], char*));
 }
 
 

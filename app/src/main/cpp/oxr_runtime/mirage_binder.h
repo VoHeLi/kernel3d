@@ -3,10 +3,12 @@
 #include "../openxr/openxr_reflection.h"
 #include "openxr/openxr_platform.h"
 
-static char* sharedMemoryBuffer = nullptr;
+#include "mirage_shared/shared_memory_descriptor.h"
+
+static shared_memory_descriptor* sharedMemoryDescriptor = nullptr;
 #define STC_MEMORY_SIZE 1048576
 
-XrResult initializeMirageAppInstance(void* vm, void* clazz);
+XrResult initializeMirageAppInstance(void* vm, void* clazz, const XrInstanceCreateInfo *createInfo, XrInstance *out_instance);
 
 XrResult destroyMirageInstance();
 

@@ -16,6 +16,8 @@
 #include "../glm/geometric.hpp"
 #include "SpatialObject.h"
 
+#include "mirage_app/mirage_service.h"
+
 Engine::Engine(JNIEnv* jniEnv, jobject activity){
     _jniActivityEnv = jniEnv;
     _activity = activity;
@@ -158,6 +160,9 @@ void Engine::engineMain() {
         openXrPlugin->PollActions();
 
         openXrPlugin->PrepareRendering();
+
+        //DEBUG
+        engineUpdateTest();
 
         //Hand tracking test TODO REMOVE
         XrPosef indexTipPose;

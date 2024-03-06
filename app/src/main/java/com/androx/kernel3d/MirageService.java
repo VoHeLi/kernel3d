@@ -18,12 +18,11 @@ import java.io.FileWriter;
 
 public class MirageService extends Service {
 
-    static {
-        System.loadLibrary("mirage");
-    }
+//    static {
+//        System.loadLibrary("mirage");
+//    }
 
-    private static native void mirageInit();
-    private static native void mirageCreateAppListener();
+
 
     // Declare a native method sayHello() that receives no arguments and returns void
     //private native void loadRuntimeJNI();
@@ -36,7 +35,6 @@ public class MirageService extends Service {
 
 
         afficherNotification();
-        loadRuntimeJNI();
 
         writeLoaderToApp();
 
@@ -50,9 +48,6 @@ public class MirageService extends Service {
         }
     }
 
-    private void loadRuntimeJNI() {
-        mirageInit();
-    }
 
 //    @Override
 //    public int onStartCommand(Intent intent, int flags, int startId) {
@@ -92,21 +87,6 @@ public class MirageService extends Service {
         } catch (Exception e){
             Log.e("MIRAGE", "Error when writing runtime manifest :" + e.toString());
         }
-    }
-
-    public void createAppListener(){
-        mirageCreateAppListener();
-
-        //On met dans un fichier, mais c'est une méthode temporaire pour l'instant
-        Log.d("MIRAGE", "App listener created...");
-//        String libDir = getApplicationInfo().nativeLibraryDir;
-//        String runtime_path = libDir + "/libruntime.so";
-//
-//        String jsonData = Integer.toString(fd); //not safe
-//
-//        Log.d("MIRAGE", "Writing fd : \n" + jsonData);
-//
-//        writeFileOnInternalStorage(getApplicationContext(), "testAppFD.data", jsonData); //DEBUG NAME
     }
 
     private void afficherNotification() {

@@ -22,7 +22,7 @@ enum memory_errno shared_memory_descriptor::get_error_no() {
     return error_no;
 }
 
-void shared_memory_descriptor::memory_init() {
+void shared_memory_descriptor::memory_init_server() {
     available_blocks = DEFAULT_SIZE;
     first_block = 0;
 
@@ -31,6 +31,8 @@ void shared_memory_descriptor::memory_init() {
     }
 
     blocks[DEFAULT_SIZE-1] = NULL_BLOCK;
+
+    server_base_ptr = (void*)this;
 
     error_no = E_SUCCESS;
 }
@@ -175,3 +177,16 @@ void shared_memory_descriptor::memory_reorder() {
         }
     }
 }
+
+
+void *shared_memory_descriptor::client_to_server_memory(void* addr) {
+    return (void*)((uint64_t )addr + (uint64_t )server_base_ptr - (uint64_t )client_base_ptr);
+}
+
+void shared_memory_descriptor::memory_init_client() {
+    client_base_ptr = (void*)this;
+
+    error_no = E_SUCCESS;
+}
+
+

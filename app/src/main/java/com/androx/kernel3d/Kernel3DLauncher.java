@@ -50,6 +50,9 @@ public class Kernel3DLauncher extends Activity{
 
     public native int destroyNativeWindow();
 
+    private static native void mirageInit();
+    private static native void mirageCreateAppListener();
+
     private boolean isBound = false;
     private MirageService mirageService;
 
@@ -93,6 +96,8 @@ public class Kernel3DLauncher extends Activity{
         //STARTING RUNTIME SERVICE : TODO PLACE THIS SOMEWHERE ELSE
         Intent intent = new Intent(this, MirageService.class);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+        mirageInit();
 
         start();
         //TODO LOAD
@@ -240,12 +245,7 @@ public class Kernel3DLauncher extends Activity{
             intent.putExtra("AndroxUnstoppable", true);
             getIntent().putExtra("AndroxUnstoppable", true);
 
-            //mirageCreateAppListener
-            while(mirageService == null){
-                Thread.sleep(10000);
-            }
-
-            mirageService.createAppListener();
+            mirageCreateAppListener();
             //getIntent().putExtra("MirageAppListenerFD", fd);
 
             Log.d("Androx Kernel3D", "launching App!");

@@ -27,6 +27,8 @@
 #define SOCKET_PATH "\0mirage_service_listener" //TODO : Change this to a more unique name per app
 #define STC_MEMORY_SIZE 1048576
 
+
+
 class mirage_app_server {
 
 public:
@@ -36,8 +38,10 @@ public:
     XrInstance getInstance();
     bool isAccessible();
 
+    void debugLog();
+
 private:
-    char* _sharedMemoryPtr;
+    shared_memory_descriptor* _sharedMemoryDescriptor;
     int _sharedMemoryFD;
     int _server_fd;
     int _client_fd;
@@ -52,6 +56,8 @@ private:
     void handleClientInitialization();
     void sendFDToClient(int fd);
 };
+
+
 
 
 #endif

@@ -19,12 +19,14 @@
 #include "mirage_app_server.h"
 #include <vector>
 
+#include "mirage_service.h"
+
 
 std::vector<mirage_app_server*> servers;
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_androx_kernel3d_MirageService_mirageCreateAppListener(JNIEnv *env, jclass clazz) {
+Java_com_androx_kernel3d_Kernel3DLauncher_mirageCreateAppListener(JNIEnv *env, jclass clazz) {
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Creating App Listener!");
     mirage_app_server* server = new mirage_app_server();
     servers.push_back(server);
@@ -32,7 +34,16 @@ Java_com_androx_kernel3d_MirageService_mirageCreateAppListener(JNIEnv *env, jcla
 }
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_androx_kernel3d_MirageService_mirageInit(JNIEnv *env, jclass clazz) {
+Java_com_androx_kernel3d_Kernel3DLauncher_mirageInit(JNIEnv *env, jclass clazz) {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Initializing Service!");
+}
+
+
+JNIEXPORT void JNICALL
+engineUpdateTest() {
+
+    for(int i = 0; i < servers.size(); i++){
+        servers[i]->debugLog();
+    }
 }

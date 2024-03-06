@@ -11,6 +11,8 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <linux/un.h>
+#include <new>
+#include "mirage_shared/XrInstanceDescriptor.h"
 
 #define SOCKET_PATH "\0mirage_service_listener"
 
@@ -95,7 +97,7 @@ int getFd(const char* filename) {
 }
 
 
-XrResult initializeMirageAppInstance(void* vm, void* clazz){
+XrResult initializeMirageAppInstance(void* vm, void* clazz, const XrInstanceCreateInfo *createInfo, XrInstance *out_instance){
 
 
 
@@ -106,12 +108,16 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz){
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got fd : %d", fd);
 
     size_t memSize = ASharedMemory_getSize(fd);
-    sharedMemoryBuffer = (char *) mmap(NULL, STC_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    char* sharedMemoryBuffer = (char *) mmap(NULL, sizeof(shared_memory_descriptor), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
+    sharedMemoryDescriptor = new(sharedMemoryBuffer) shared_memory_descriptor(); //(shared_memory_descriptor*) sharedMemoryPtr;
 
     //Store XRInstance in shared memory
+    XrInstanceDescriptor* instanceDescriptor = NEW_SHARED(XrInstanceDescriptor, sharedMemoryDescriptor, vm, clazz, createInfo);
+    sharedMemoryDescriptor->set_instance_ptr((void*)instanceDescriptor);
+    sharedMemoryDescriptor->memory_init_client();
 
-
+    *out_instance = (XrInstance)instanceDescriptor;
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstanceEnd");
 
