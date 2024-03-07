@@ -5,7 +5,7 @@
 
 XrInstanceDescriptor::XrInstanceDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, void* vm, void* clazz, const XrInstanceCreateInfo *createInfo) {
     signature = XR_INSTANCE_SIGNATURE;
-    created = true;
+
     this->vm = vm;
     this->clazz = clazz;
 
@@ -33,6 +33,10 @@ XrInstanceDescriptor::XrInstanceDescriptor(shared_memory_descriptor* sharedMemor
     c->enabledExtensionNames = enabledExtensionNames;
 
     this->createInfo = c;
+
+    this->systemIdDescriptor = nullptr;
+
+    this->created = true;
 }
 
 XrInstanceDescriptor::~XrInstanceDescriptor() {

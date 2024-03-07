@@ -189,4 +189,8 @@ void shared_memory_descriptor::memory_init_client() {
     error_no = E_SUCCESS;
 }
 
+void *shared_memory_descriptor::server_to_client_memory(void *addr) {
+    return (void*)((uint64_t )addr - (uint64_t )server_base_ptr + (uint64_t )client_base_ptr);
+}
+
 

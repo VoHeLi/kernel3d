@@ -27,7 +27,8 @@
 #define SOCKET_PATH "\0mirage_service_listener" //TODO : Change this to a more unique name per app
 #define STC_MEMORY_SIZE 1048576
 
-
+#define MIRAGE_VENDOR_ID 0xb2328062
+#define SYSTEM_NAME "Mirage System"
 
 class mirage_app_server {
 
@@ -41,13 +42,14 @@ public:
     void debugLog();
 
 private:
-    shared_memory_descriptor* _sharedMemoryDescriptor;
+    shared_memory_descriptor* sharedMemoryDescriptor;
     int _sharedMemoryFD;
     int _server_fd;
     int _client_fd;
     bool _isAccessible;
     std::thread _serverInitializationThread;
     std::thread _serverDestroyThread;
+    bool _isInitialized;
 
     void initializeServerThread();
     void destroyServerThread();
@@ -55,6 +57,8 @@ private:
     void initializeServerSocket();
     void handleClientInitialization();
     void sendFDToClient(int fd);
+
+    void populateSystemProperties();
 };
 
 

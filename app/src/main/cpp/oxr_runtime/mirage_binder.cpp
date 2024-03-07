@@ -13,11 +13,11 @@
 #include <linux/un.h>
 #include <new>
 #include "mirage_shared/XrInstanceDescriptor.h"
+#include "mirage_shared/common_types.h"
 
 #define SOCKET_PATH "\0mirage_service_listener"
 
 int getFd(const char* filename) {
-    int client_fd;
     struct sockaddr_un server_addr;
     long long fd;
 
@@ -89,8 +89,15 @@ int getFd(const char* filename) {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got FD : %d", fd);
 
+    char* lol = (char*) malloc(256);
+    recv(client_fd, lol, 256, 0);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Drained 256 extra bytes of recv queue");
+
+    free(lol);
+
     // Fermeture du descripteur de fichier
-    close(client_fd);
+    //close(client_fd);
     //close(fd);
 
     return fd;
@@ -119,6 +126,15 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz, const XrInstanceCrea
 
     *out_instance = (XrInstance)instanceDescriptor;
 
+    cts_instruction instruction = cts_instruction::POPULATE_SYSTEM_PROPERTIES;
+    send(client_fd, &instruction, sizeof(cts_instruction), 0);
+    cts_instruction response = cts_instruction::NONE;
+
+    recv(client_fd, &response, sizeof(cts_instruction), 0);
+    if(response != cts_instruction::POPULATE_SYSTEM_PROPERTIES){
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "InitializeMirageAppInstanceEnd");
 
     return XR_SUCCESS;
@@ -134,7 +150,20 @@ XrResult miragePathToString(XrPath path, uint32_t bufferCapacityInput, uint32_t 
 XrResult mirageStringToPath(const char *pathString, XrPath *out_path){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
 
-XrResult getMirageSystem(const XrSystemGetInfo* systemGetInfo, XrSystemId* systemId){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult getMirageSystem(const XrSystemGetInfo* systemGetInfo, XrSystemId* systemId){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Unimplemented1");
+
+
+    XrSystemIdDescriptor* systemIdDescriptor = (XrSystemIdDescriptor*) ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->systemIdDescriptor;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Got resolution %u x %u", systemIdDescriptor->systemProperties->graphicsProperties.maxSwapchainImageWidth, systemIdDescriptor->systemProperties->graphicsProperties.maxSwapchainImageHeight);
+
+    //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Not crashed yet + %p", systemIdDescriptor);
+    *systemId = (XrSystemId)systemIdDescriptor;
+
+    return XR_SUCCESS;
+}
 
 XrResult getMirageSystemProperties(XrSystemId systemId, XrSystemProperties *properties){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
@@ -146,7 +175,19 @@ XrResult mirageEnumerateViewConfigurationViews(XrSystemId systemId,XrViewConfigu
 
 XrResult mirageEnumerateEnvironmentBlendModes(XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t environmentBlendModeCapacityInput,uint32_t *environmentBlendModeCountOutput,XrEnvironmentBlendMode *environmentBlendModes){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-XrResult mirageGetOpenGLESGraphicsRequirementsKHR(XrSystemId systemId, XrGraphicsRequirementsOpenGLESKHR *graphicsRequirements){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult mirageGetOpenGLESGraphicsRequirementsKHR(XrSystemId systemId, XrGraphicsRequirementsOpenGLESKHR *graphicsRequirements){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageGetOpenGLESGraphicsRequirementsKHR called!");
+
+    XrSystemIdDescriptor* systemIdDescriptor = (XrSystemIdDescriptor*) systemId;
+
+    *graphicsRequirements = *systemIdDescriptor->graphicsRequirements;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageGetOpenGLESGraphicsRequirementsKHR : Minor Ver : %hu, Major Ver : %hu!",
+                        XR_VERSION_MAJOR(graphicsRequirements->minApiVersionSupported), XR_VERSION_MAJOR(graphicsRequirements->maxApiVersionSupported));
+
+    return XR_SUCCESS;
+}
 
 
 XrResult mirageCreateSession(const XrSessionCreateInfo *createInfo, XrSession *session){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}

@@ -5,6 +5,7 @@
 
 #include "mirage_shared/shared_memory_descriptor.h"
 
+static int client_fd;
 static shared_memory_descriptor* sharedMemoryDescriptor = nullptr;
 #define STC_MEMORY_SIZE 1048576
 

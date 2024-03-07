@@ -4,7 +4,8 @@
 
 #define NEW_SHARED(a, ...) new(sharedMemoryDescriptor->memory_allocate(sizeof(a))) a(__VA_ARGS__)
 
-#define CTSM(a, T) ((T)_sharedMemoryDescriptor->client_to_server_memory((void*)a))
+#define CTSM(a, T) ((T)sharedMemoryDescriptor->client_to_server_memory((void*)a))
+#define STCM(a, T) ((T)sharedMemoryDescriptor->server_to_client_memory((void*)a))
 
 #define NULL_BLOCK INT64_MAX
 #define DEFAULT_SIZE 131072 //TODO ADAPT THIS
@@ -28,6 +29,7 @@ public:
     enum memory_errno get_error_no();
 
     void* client_to_server_memory(void* addr);
+    void* server_to_client_memory(void* addr);
 
     void memory_init_server();
     void memory_init_client();

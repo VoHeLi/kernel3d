@@ -69,6 +69,8 @@ XrResult OpenXRPlugin::InitializeSystemId() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "_getSystem Result : %d", result);
 
+
+
     return result;
 }
 
@@ -136,6 +138,13 @@ XrResult OpenXRPlugin::CreateSwapchains() {
     // Read graphics properties for preferred swapchain length and logging.
     XrSystemProperties systemProperties{XR_TYPE_SYSTEM_PROPERTIES};
     XrResult result = xrGetSystemProperties(_instance, _systemId, &systemProperties);
+
+    //Print the linked List of System Properties
+//    const XrSystemProperties* next = &systemProperties;
+//    while(next != nullptr){
+//        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D Debug", "Next : %lx", next->systemId);
+//        next = (XrSystemProperties*)next->next;
+//    }
 
     if(result != XR_SUCCESS){
         __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "Swap 1 %d", result);

@@ -3,6 +3,8 @@
 #include <chrono>
 #include <ctime>
 
+#include "mirage_shared/common_types.h"
+
 mirage_app_server::mirage_app_server() {
     _isAccessible = false;
     _serverInitializationThread = std::thread(&mirage_app_server::initializeServerThread, this);
@@ -19,6 +21,35 @@ void mirage_app_server::initializeServerThread() {
     initializeServerSocket();
     handleClientInitialization();
     sendFDToClient(_sharedMemoryFD);
+
+
+    while(!_isInitialized){
+        cts_instruction instruction = cts_instruction::NONE;
+        if(recv(_client_fd, &instruction, sizeof(cts_instruction), 0) < 0){
+            __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Receiving error");
+            __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ERRNO : %d", errno);
+            if(errno == 104){
+                __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "The client app has been closed. Exiting server thread.");
+                //TODO : DESTROY SERVER THREAD
+                break;
+            }
+            exit(EXIT_FAILURE);
+        }
+
+
+        //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received : %lu", instruction);
+
+        switch(instruction){
+            case cts_instruction::POPULATE_SYSTEM_PROPERTIES:
+                populateSystemProperties();
+                break;
+            default:
+                break;
+        }
+
+        //PING BACK
+        send(_client_fd, &instruction, sizeof(cts_instruction), 0);
+    }
 }
 
 void mirage_app_server::destroyServerThread() {
@@ -26,7 +57,7 @@ void mirage_app_server::destroyServerThread() {
 }
 
 XrInstance mirage_app_server::getInstance() {
-    return (XrInstance)_sharedMemoryDescriptor->get_instance_ptr();
+    return (XrInstance)sharedMemoryDescriptor->get_instance_ptr();
 }
 
 bool mirage_app_server::isAccessible() {
@@ -38,8 +69,8 @@ void mirage_app_server::initializeSharedMemory() {
 
     char* sharedMemoryPtr = (char *) mmap(NULL, sizeof(shared_memory_descriptor), PROT_WRITE | PROT_READ, MAP_SHARED, _sharedMemoryFD, 0);
 
-    _sharedMemoryDescriptor = new(sharedMemoryPtr) shared_memory_descriptor(); //(shared_memory_descriptor*) sharedMemoryPtr;
-    _sharedMemoryDescriptor->memory_init_server();
+    sharedMemoryDescriptor = new(sharedMemoryPtr) shared_memory_descriptor(); //(shared_memory_descriptor*) sharedMemoryPtr;
+    sharedMemoryDescriptor->memory_init_server();
 
 //    char* debugStr = (char*)_sharedMemoryDescriptor->memory_allocate(128);
 //    strcpy(debugStr, "Hello from server!");
@@ -106,6 +137,42 @@ void mirage_app_server::sendFDToClient(int fd) {
     }
 }
 
+
+void mirage_app_server::populateSystemProperties() {
+    //DEBUG VALUES
+    //TODO : MAKE IT ADAPTATIVE
+    XrSystemProperties systemProperties = {
+        .type = XR_TYPE_SYSTEM_PROPERTIES,
+        .next = nullptr,
+        .systemId = 0,
+        .vendorId = MIRAGE_VENDOR_ID,
+        .systemName = SYSTEM_NAME,
+        .graphicsProperties = {
+            .maxSwapchainImageHeight = 1600, //TODO : MAKE IT ADAPTATIVE
+            .maxSwapchainImageWidth = 1600, //TODO : MAKE IT ADAPTATIVE
+            .maxLayerCount = XR_MIN_COMPOSITION_LAYERS_SUPPORTED,
+        },
+        .trackingProperties = {
+            .orientationTracking = XR_TRUE,
+            .positionTracking = XR_TRUE,
+        },
+    };
+
+
+    XrGraphicsRequirementsOpenGLESKHR graphicsRequirementsOpenGLESKHR = {
+        .type = XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR,
+        .next = nullptr,
+        .minApiVersionSupported = XR_MAKE_VERSION(2,0,0), //TODO CHANGE
+        .maxApiVersionSupported = XR_MAKE_VERSION(3,2,0), //TODO CHANGE
+    };
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Populating system properties");
+
+    NEW_SHARED(XrSystemIdDescriptor, sharedMemoryDescriptor, CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*), &systemProperties, &graphicsRequirementsOpenGLESKHR);
+
+
+}
+
 double lastTime = 0;
 
 void mirage_app_server::debugLog() {
@@ -120,9 +187,9 @@ void mirage_app_server::debugLog() {
     }
     lastTime = seconds;
 
-    XrInstanceDescriptor* instanceDescriptor = CTSM(_sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
+    XrInstanceDescriptor* instanceDescriptor = CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Getting info on instance : %p, shared memory loc : %p", instanceDescriptor, _sharedMemoryDescriptor);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Getting info on instance : %p, shared memory loc : %p", instanceDescriptor, sharedMemoryDescriptor);
 
     if(instanceDescriptor == nullptr) {
         __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Instance info : NULL");
@@ -132,6 +199,7 @@ void mirage_app_server::debugLog() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Instance info : %s", CTSM(CTSM(CTSM(instanceDescriptor->createInfo, XrInstanceCreateInfo*)->enabledExtensionNames, char**)[0], char*));
 }
+
 
 
 
