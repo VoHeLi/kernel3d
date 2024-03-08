@@ -145,9 +145,77 @@ XrResult destroyMirageInstance(){ __android_log_print(ANDROID_LOG_DEBUG, "PICORE
 
 XrResult pollMirageEvents(XrEventDataBuffer *eventData){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-XrResult miragePathToString(XrPath path, uint32_t bufferCapacityInput, uint32_t *bufferCountOutput, char *buffer){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult miragePathToString(XrPath path, uint32_t bufferCapacityInput, uint32_t *bufferCountOutput, char *buffer){
 
-XrResult mirageStringToPath(const char *pathString, XrPath *out_path){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MiragePathToString called!");
+
+    XrPathDescriptor* pathDescriptor = (XrPathDescriptor*) ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstPathDescriptor;
+    if(pathDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Path not found!");
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
+
+    uint64_t n = (uint64_t)path;
+    for(int i = 0; i < n; i++){
+        if(pathDescriptor == nullptr){
+            __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Path not found!");
+            return XR_ERROR_VALIDATION_FAILURE;
+        }
+
+        pathDescriptor = pathDescriptor->nextPathDescriptor;
+    }
+
+    if(pathDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Path not found!");
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
+
+    if(strlen(pathDescriptor->pathString) > bufferCapacityInput){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Buffer too small!");
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
+
+    strcpy(buffer, pathDescriptor->pathString);
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageStringToPath(const char *pathString, XrPath *out_path){
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Searching for path : %s", pathString);
+
+    XrPathDescriptor* pathDescriptor = (XrPathDescriptor*) ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstPathDescriptor;
+
+    if(pathDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "No paths found");
+
+        ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstPathDescriptor = NEW_SHARED(XrPathDescriptor, sharedMemoryDescriptor, pathString, nullptr);
+
+        *out_path = (XrPath)0;
+
+        return XR_SUCCESS;
+    }
+
+    uint64_t counter = 0;
+
+    XrPathDescriptor* lastPathDescriptor = pathDescriptor;
+    //TODO : Add a limit to the number of paths
+    //Check the existing paths
+    while(pathDescriptor != nullptr){
+        if(strcmp(pathDescriptor->pathString, pathString) == 0){
+            *out_path = (XrPath)counter;
+            return XR_SUCCESS;
+        }
+        lastPathDescriptor = pathDescriptor;
+        pathDescriptor = pathDescriptor->nextPathDescriptor;
+        counter++;
+    }
+
+    lastPathDescriptor->nextPathDescriptor = NEW_SHARED(XrPathDescriptor, sharedMemoryDescriptor, pathString, lastPathDescriptor);
+
+    *out_path = (XrPath)counter;
+
+    return XR_SUCCESS;
+}
 
 
 XrResult getMirageSystem(const XrSystemGetInfo* systemGetInfo, XrSystemId* systemId){

@@ -35,6 +35,7 @@ XrInstanceDescriptor::XrInstanceDescriptor(shared_memory_descriptor* sharedMemor
     this->createInfo = c;
 
     this->systemIdDescriptor = nullptr;
+    this->firstPathDescriptor = nullptr;
 
     this->created = true;
 }

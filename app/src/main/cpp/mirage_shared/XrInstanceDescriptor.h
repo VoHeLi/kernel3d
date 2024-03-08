@@ -5,6 +5,7 @@
 #include "../engine/gfxwrapper_opengl.h"
 #include "shared_memory_descriptor.h"
 #include "XrSystemIdDescriptor.h"
+#include "XrPathDescriptor.h"
 
 #include <string.h>
 
@@ -24,6 +25,7 @@ public:
     void* clazz;
     XrInstanceCreateInfo* createInfo;
     XrSystemIdDescriptor* systemIdDescriptor;
+    XrPathDescriptor* firstPathDescriptor;
 
 };
 

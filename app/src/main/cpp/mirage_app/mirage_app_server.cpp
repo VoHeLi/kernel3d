@@ -182,7 +182,7 @@ void mirage_app_server::debugLog() {
     std::chrono::duration<double> duration = currentTime.time_since_epoch();
     double seconds = duration.count();
 
-    if(seconds - lastTime < 1) {
+    if(seconds - lastTime < 5) {
         return;
     }
     lastTime = seconds;
@@ -191,13 +191,25 @@ void mirage_app_server::debugLog() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Getting info on instance : %p, shared memory loc : %p", instanceDescriptor, sharedMemoryDescriptor);
 
-    if(instanceDescriptor == nullptr) {
+    if(instanceDescriptor == CTSM(nullptr, void*)) {
         __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Instance info : NULL");
         return;
     }
 
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Instance info : %s", CTSM(CTSM(CTSM(instanceDescriptor->createInfo, XrInstanceCreateInfo*)->enabledExtensionNames, char**)[0], char*));
+
+    if(instanceDescriptor->firstPathDescriptor == CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : NULL");
+        return;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %p", instanceDescriptor->firstPathDescriptor);
+
+    XrPathDescriptor* pathDescriptor = CTSM(instanceDescriptor->firstPathDescriptor, XrPathDescriptor*);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %s", CTSM(pathDescriptor->pathString, const char*));
+
 }
 
 
