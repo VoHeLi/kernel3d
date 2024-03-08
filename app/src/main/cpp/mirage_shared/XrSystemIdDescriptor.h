@@ -21,6 +21,7 @@ public:
     XrSystemProperties* systemProperties;
 
     XrGraphicsRequirementsOpenGLESKHR* graphicsRequirements;
+    //TODO MOVE INTO INSTANCE, IN REALITY XrSystemId is just an id
 };
 
 

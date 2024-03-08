@@ -59,6 +59,8 @@ private:
     void sendFDToClient(int fd);
 
     void populateSystemProperties();
+
+    void populateInitialSessionProperties();
 };
 
 

@@ -6,6 +6,7 @@
 #include "shared_memory_descriptor.h"
 #include "XrSystemIdDescriptor.h"
 #include "XrPathDescriptor.h"
+#include "XrSessionDescriptor.h"
 
 #include <string.h>
 
@@ -13,6 +14,7 @@
 #define XR_INSTANCE_SIGNATURE 0xcba6c2e8da5f677b
 
 class XrSystemIdDescriptor;
+class XrSessionDescriptor;
 
 class XrInstanceDescriptor {
 public:
@@ -26,6 +28,7 @@ public:
     XrInstanceCreateInfo* createInfo;
     XrSystemIdDescriptor* systemIdDescriptor;
     XrPathDescriptor* firstPathDescriptor;
+    XrSessionDescriptor* firstSessionDescriptor;
 
 };
 

@@ -43,6 +43,9 @@ void mirage_app_server::initializeServerThread() {
             case cts_instruction::POPULATE_SYSTEM_PROPERTIES:
                 populateSystemProperties();
                 break;
+            case cts_instruction::POPULATE_INITIAL_SESSION_PROPERTIES:
+                populateInitialSessionProperties();
+                break;
             default:
                 break;
         }
@@ -173,6 +176,39 @@ void mirage_app_server::populateSystemProperties() {
 
 }
 
+
+void mirage_app_server::populateInitialSessionProperties() {
+    //Get instance
+    XrInstanceDescriptor* instanceDescriptor = CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
+
+    //Check if not null
+    if(instanceDescriptor == CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Instance is null");
+        return;
+    }
+
+    //Get session descriptor from instance
+    XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);
+
+    //Check if not null
+    if(sessionDescriptor == CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Session is null");
+        return;
+    }
+
+    //Get the child until null to fill last session
+    while(CTSM(sessionDescriptor->nextSessionDescriptor, XrSessionDescriptor*) != CTSM(nullptr, void*)) {
+        sessionDescriptor = CTSM(sessionDescriptor->nextSessionDescriptor, XrSessionDescriptor*);
+    }
+
+    //Fill reference spaces
+    XrReferenceSpaceType* referenceSpaceType = NEW_SHARED(XrReferenceSpaceType);
+    *referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
+    sessionDescriptor->referenceSpaces = STCM(referenceSpaceType, XrReferenceSpaceType*);
+    sessionDescriptor->referenceSpacesCount = 1;
+}
+
+
 double lastTime = 0;
 
 void mirage_app_server::debugLog() {
@@ -210,7 +246,18 @@ void mirage_app_server::debugLog() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %s", CTSM(pathDescriptor->pathString, const char*));
 
+
+    XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);
+
+    if(sessionDescriptor == CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Session info : NULL");
+        return;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Session OpenGL ES Config ptr info (debug only) : %p", CTSM(CTSM(sessionDescriptor->createInfo, XrSessionCreateInfo*)->next, XrGraphicsBindingOpenGLESAndroidKHR*)->config);
+
 }
+
 
 
 

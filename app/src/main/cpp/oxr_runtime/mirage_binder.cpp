@@ -220,8 +220,12 @@ XrResult mirageStringToPath(const char *pathString, XrPath *out_path){
 
 XrResult getMirageSystem(const XrSystemGetInfo* systemGetInfo, XrSystemId* systemId){
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Unimplemented1");
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Get Mirage System!");
 
+    if(systemGetInfo == nullptr || systemGetInfo->formFactor != XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "systemGetInfo is null or form factor is not HMD!");
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
 
     XrSystemIdDescriptor* systemIdDescriptor = (XrSystemIdDescriptor*) ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->systemIdDescriptor;
 
@@ -258,7 +262,30 @@ XrResult mirageGetOpenGLESGraphicsRequirementsKHR(XrSystemId systemId, XrGraphic
 }
 
 
-XrResult mirageCreateSession(const XrSessionCreateInfo *createInfo, XrSession *session){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult mirageCreateSession(const XrSessionCreateInfo *createInfo, XrSession *session){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateSession called!");
+
+    XrSessionDescriptor* sessionDescriptor = NEW_SHARED(XrSessionDescriptor, sharedMemoryDescriptor, (XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr(), createInfo);
+
+    *session = (XrSession)sessionDescriptor;
+
+    cts_instruction instruction = cts_instruction::POPULATE_INITIAL_SESSION_PROPERTIES;
+    send(client_fd, &instruction, sizeof(cts_instruction), 0);
+    cts_instruction response = cts_instruction::NONE;
+
+    recv(client_fd, &response, sizeof(cts_instruction), 0);
+    if(response != cts_instruction::POPULATE_INITIAL_SESSION_PROPERTIES){
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateSession done : %p", sessionDescriptor);
+
+    return XR_SUCCESS;
+
+
+
+}
 
 XrResult mirageDestroySession(XrSession session){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
@@ -276,15 +303,47 @@ XrResult mirageRequestExitSession(XrSession session){ __android_log_print(ANDROI
 
 XrResult mirageLocateViews(XrSession session, const XrViewLocateInfo *viewLocateInfo, XrViewState *viewState, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrView *views){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-
 XrResult mirageEnumerateReferenceSpaces(XrSession session, //PASS TODO : maybe change reference space to stage?
                                         uint32_t spaceCapacityInput,
                                         uint32_t *spaceCountOutput,
-                                        XrReferenceSpaceType *spaces){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+                                        XrReferenceSpaceType *spaces){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateReferenceSpaces called!");
+
+    //get session
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
+
+    if(spaceCapacityInput == 0 || spaces == nullptr){
+        *spaceCountOutput = sessionDescriptor->referenceSpacesCount;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Giving size!");
+        return XR_SUCCESS;
+    }
+
+    if(spaceCapacityInput < sessionDescriptor->referenceSpacesCount){
+        *spaceCountOutput = sessionDescriptor->referenceSpacesCount;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Size error!");
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    for(int i = 0; i < sessionDescriptor->referenceSpacesCount; i++){
+        spaces[i] = sessionDescriptor->referenceSpaces[i];
+    }
+
+    *spaceCountOutput = sessionDescriptor->referenceSpacesCount;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateReferenceSpaces done!");
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df *bounds){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-XrResult mirageCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo *createInfo, XrSpace *space){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+//TODO APRES
+XrResult mirageCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo *createInfo, XrSpace *space){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented");
+
+    return XR_ERROR_VALIDATION_FAILURE;}
 
 XrResult mirageLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation *location){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
