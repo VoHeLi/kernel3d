@@ -171,13 +171,38 @@ void mirage_app_server::populateSystemProperties() {
 
 
 
-    XrViewConfigurationType viewConfigurationType = {XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO};
+    XrViewConfigurationType viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
     int viewConfigurationsCount = 1;
+
+    //Fill views
+    //Lynx values
+    XrViewConfigurationView viewConfigurationView = {
+        .type = XR_TYPE_VIEW_CONFIGURATION_VIEW,
+        .next = nullptr,
+        .recommendedImageRectWidth = 1600,
+        .maxImageRectWidth = 1600,
+        .recommendedImageRectHeight = 1600,
+        .maxImageRectHeight = 1600,
+        .recommendedSwapchainSampleCount = 1,
+        .maxSwapchainSampleCount = 1,
+    };
+
+    XrViewConfigurationProperties viewConfigurationProperties = {
+        .type = XR_TYPE_VIEW_CONFIGURATION_PROPERTIES,
+        .next = nullptr,
+        .viewConfigurationType = viewConfigurationType,
+        .fovMutable = XR_FALSE, //Should not be changed
+    };
+
+    XrEnvironmentBlendMode environmentBlendModes[] = {XR_ENVIRONMENT_BLEND_MODE_OPAQUE, XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND}; //Video passthrough
 
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Populating system properties");
 
-    NEW_SHARED(XrSystemIdDescriptor, sharedMemoryDescriptor, CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*), &systemProperties, &graphicsRequirementsOpenGLESKHR, &viewConfigurationType, 1);
+    NEW_SHARED(XrSystemIdDescriptor, sharedMemoryDescriptor, CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*),
+               &systemProperties, &graphicsRequirementsOpenGLESKHR, &viewConfigurationType, 1,
+               &viewConfigurationView, 1, &viewConfigurationProperties,
+               environmentBlendModes, 2);
 
 
 }
@@ -226,9 +251,9 @@ void mirage_app_server::populateInitialSessionProperties() {
     swapchainFormats[3] = 35056;
     swapchainFormats[4] = 36012;
 
-
     sessionDescriptor->swapchainFormats = STCM(swapchainFormats, int64_t*);
     sessionDescriptor->swapchainFormatsCount = 1;
+
 }
 
 
@@ -241,7 +266,7 @@ void mirage_app_server::debugLog() {
     std::chrono::duration<double> duration = currentTime.time_since_epoch();
     double seconds = duration.count();
 
-    if(seconds - lastTime < 5) {
+    if(seconds - lastTime < 1) {
         return;
     }
     lastTime = seconds;
@@ -267,7 +292,14 @@ void mirage_app_server::debugLog() {
 
     XrPathDescriptor* pathDescriptor = CTSM(instanceDescriptor->firstPathDescriptor, XrPathDescriptor*);
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %s", CTSM(pathDescriptor->pathString, const char*));
+    while(pathDescriptor != CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %s", CTSM(pathDescriptor->pathString, const char*));
+        pathDescriptor = CTSM(pathDescriptor->nextPathDescriptor, XrPathDescriptor*);
+    }
+    /*XrPathDescriptor* pathDescriptor = CTSM(instanceDescriptor->firstPathDescriptor, XrPathDescriptor*);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %s", CTSM(pathDescriptor->pathString, const char*));*/
+
 
 
     XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);

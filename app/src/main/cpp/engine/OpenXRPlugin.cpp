@@ -171,6 +171,13 @@ XrResult OpenXRPlugin::CreateSwapchains() {
     _configViews.resize(viewCount, {XR_TYPE_VIEW_CONFIGURATION_VIEW});
     result = xrEnumerateViewConfigurationViews(_instance, _systemId, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewCount,
                                                   &viewCount, _configViews.data());
+
+    //PRINT VIEW CONFIGURATION VIEWS
+    for(int i = 0; i < viewCount; i++){
+        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "View Configuration View Swapchains : %d", _configViews[i].recommendedSwapchainSampleCount);
+        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "View Configuration View Swapchains Max : %d", _configViews[i].maxSwapchainSampleCount);
+    }
+
     if(result != XR_SUCCESS){
         __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "Swap 3 %d", result);
     }

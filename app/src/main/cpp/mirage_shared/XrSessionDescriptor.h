@@ -21,8 +21,10 @@ public:
     XrSessionDescriptor* nextSessionDescriptor;
     XrReferenceSpaceType* referenceSpaces;
     uint32_t referenceSpacesCount;
+    XrReferenceSpaceDescriptor* firstReferenceSpaceDescriptor;
     int64_t* swapchainFormats;
     uint32_t swapchainFormatsCount;
-    XrReferenceSpaceDescriptor* firstReferenceSpaceDescriptor;
+    XrViewConfigurationType primaryViewConfigurationType;
+
     //TODO : Add Graphics Bindings support for server
 };

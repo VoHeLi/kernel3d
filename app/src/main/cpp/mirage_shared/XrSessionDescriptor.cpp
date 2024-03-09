@@ -49,6 +49,7 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
     this->swapchainFormatsCount = 0;
 
     this->firstReferenceSpaceDescriptor = nullptr;
+    this->primaryViewConfigurationType = (XrViewConfigurationType)0; //UNINITIALIZED
 
     this->created = true;
 }

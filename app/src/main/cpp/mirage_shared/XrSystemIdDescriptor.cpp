@@ -8,7 +8,10 @@ XrSystemIdDescriptor::XrSystemIdDescriptor(shared_memory_descriptor *sharedMemor
                                            XrInstanceDescriptor *instanceDescriptorServerAddr,
                                            XrSystemProperties *systemPropertiesServerAddr,
                                            XrGraphicsRequirementsOpenGLESKHR* graphicsRequirementsOpenGleskhrServerAddr,
-                                           XrViewConfigurationType* viewConfigurationTypes, int viewConfigurationsCount){
+                                           XrViewConfigurationType* viewConfigurationTypes, int viewConfigurationsCount,
+                                           XrViewConfigurationView* views, int viewsCount,
+                                           XrViewConfigurationProperties* viewConfigurationProperties,
+                                           XrEnvironmentBlendMode* environmentBlendModes, int environmentBlendModesCount){
     signature = XR_SYSTEMID_SIGNATURE;
 
     this->instanceDescriptor = STCM(instanceDescriptorServerAddr, XrInstanceDescriptor*);
@@ -29,7 +32,7 @@ XrSystemIdDescriptor::XrSystemIdDescriptor(shared_memory_descriptor *sharedMemor
 
     this->systemProperties = STCM(s, XrSystemProperties*);
 
-    //DEEP COPY OF graphicsRequirementsOpenGleskhrServerAddr
+    //--------------------------------------------------------------------------------
     XrGraphicsRequirementsOpenGLESKHR* g = NEW_SHARED(XrGraphicsRequirementsOpenGLESKHR);
     g->type = XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR;
     g->next = nullptr;
@@ -38,12 +41,36 @@ XrSystemIdDescriptor::XrSystemIdDescriptor(shared_memory_descriptor *sharedMemor
 
     this->graphicsRequirements = STCM(g, XrGraphicsRequirementsOpenGLESKHR*);
 
+    //--------------------------------------------------------------------------------
     XrViewConfigurationType* configurationType = static_cast<XrViewConfigurationType *>(sharedMemoryDescriptor->memory_allocate(
             viewConfigurationsCount * sizeof(XrViewConfigurationType)));
     memcpy(configurationType, viewConfigurationTypes, viewConfigurationsCount * sizeof(XrViewConfigurationType));
 
     this->viewConfigurations = STCM(configurationType, XrViewConfigurationType*);
     this->viewConfigurationsCount = viewConfigurationsCount;
+
+    //--------------------------------------------------------------------------------
+    XrViewConfigurationView* view = static_cast<XrViewConfigurationView *>(sharedMemoryDescriptor->memory_allocate(
+            viewsCount * sizeof(XrViewConfigurationView)));
+    memcpy(view, views, viewsCount * sizeof(XrViewConfigurationView));
+    this->views = STCM(view, XrViewConfigurationView*);
+    this->viewsCount = viewsCount;
+
+    //--------------------------------------------------------------------------------
+    XrViewConfigurationProperties* vcp = NEW_SHARED(XrViewConfigurationProperties);
+    viewConfigurationProperties->type = XR_TYPE_VIEW_CONFIGURATION_PROPERTIES;
+    viewConfigurationProperties->next = nullptr;
+    viewConfigurationProperties->viewConfigurationType = viewConfigurationProperties->viewConfigurationType;
+    viewConfigurationProperties->fovMutable = viewConfigurationProperties->fovMutable;
+
+    this->viewConfigurationProperties = STCM(vcp, XrViewConfigurationProperties*);
+
+    //--------------------------------------------------------------------------------
+    XrEnvironmentBlendMode* ebm = static_cast<XrEnvironmentBlendMode *>(sharedMemoryDescriptor->memory_allocate(
+            environmentBlendModesCount * sizeof(XrEnvironmentBlendMode)));
+    memcpy(ebm, environmentBlendModes, environmentBlendModesCount * sizeof(XrEnvironmentBlendMode));
+    this->environmentBlendModes = STCM(ebm, XrEnvironmentBlendMode*);
+    this->environmentBlendModesCount = environmentBlendModesCount;
 
     created = true;
 }

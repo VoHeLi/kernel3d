@@ -11,7 +11,12 @@ class XrInstanceDescriptor;
 class XrSystemIdDescriptor {
 
 public:
-    XrSystemIdDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, XrInstanceDescriptor* instanceDescriptorServerAddr, XrSystemProperties* systemPropertiesServerAddr, XrGraphicsRequirementsOpenGLESKHR* graphicsRequirementsOpenGleskhrServerAddr, XrViewConfigurationType* viewConfigurationTypes, int viewConfigurationsCount);
+    XrSystemIdDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, XrInstanceDescriptor* instanceDescriptorServerAddr,
+                         XrSystemProperties* systemPropertiesServerAddr, XrGraphicsRequirementsOpenGLESKHR* graphicsRequirementsOpenGleskhrServerAddr,
+                         XrViewConfigurationType* viewConfigurationTypes, int viewConfigurationsCount,
+                         XrViewConfigurationView* views, int viewsCount,
+                         XrViewConfigurationProperties* viewConfigurationProperties,
+                         XrEnvironmentBlendMode* environmentBlendModes, int environmentBlendModesCount);
     ~XrSystemIdDescriptor();
 
     int64_t signature;
@@ -21,6 +26,11 @@ public:
     XrGraphicsRequirementsOpenGLESKHR* graphicsRequirements;
     XrViewConfigurationType* viewConfigurations;
     uint64_t viewConfigurationsCount;
+    XrViewConfigurationView* views;
+    uint32_t viewsCount;
+    XrViewConfigurationProperties* viewConfigurationProperties;
+    XrEnvironmentBlendMode* environmentBlendModes;
+    uint32_t environmentBlendModesCount;
     //TODO MOVE INTO INSTANCE, IN REALITY XrSystemId is just an id
 };
 

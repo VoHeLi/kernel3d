@@ -8,7 +8,7 @@
 #define STCM(a, T) ((T)sharedMemoryDescriptor->server_to_client_memory((void*)a))
 
 #define NULL_BLOCK INT64_MAX
-#define DEFAULT_SIZE 131072 //TODO ADAPT THIS
+#define DEFAULT_SIZE 131072 //TODO ADAPT THIS //131072
 
 typedef int64_t memory_page_t;
 
