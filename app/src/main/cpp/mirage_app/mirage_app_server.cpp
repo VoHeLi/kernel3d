@@ -169,9 +169,15 @@ void mirage_app_server::populateSystemProperties() {
         .maxApiVersionSupported = XR_MAKE_VERSION(3,2,0), //TODO CHANGE
     };
 
+
+
+    XrViewConfigurationType viewConfigurationType = {XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO};
+    int viewConfigurationsCount = 1;
+
+
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Populating system properties");
 
-    NEW_SHARED(XrSystemIdDescriptor, sharedMemoryDescriptor, CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*), &systemProperties, &graphicsRequirementsOpenGLESKHR);
+    NEW_SHARED(XrSystemIdDescriptor, sharedMemoryDescriptor, CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*), &systemProperties, &graphicsRequirementsOpenGLESKHR, &viewConfigurationType, 1);
 
 
 }
@@ -206,6 +212,23 @@ void mirage_app_server::populateInitialSessionProperties() {
     *referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
     sessionDescriptor->referenceSpaces = STCM(referenceSpaceType, XrReferenceSpaceType*);
     sessionDescriptor->referenceSpacesCount = 1;
+
+    //Fill swapchain formats
+
+
+    //TODO Use realtime formats
+    //[32856] 35907 33189 35056 36012;
+    int64_t* swapchainFormats = static_cast<int64_t *>(sharedMemoryDescriptor->memory_allocate(
+            5 * sizeof(int64_t)));
+    swapchainFormats[0] = 32856;
+    swapchainFormats[1] = 35907;
+    swapchainFormats[2] = 33189;
+    swapchainFormats[3] = 35056;
+    swapchainFormats[4] = 36012;
+
+
+    sessionDescriptor->swapchainFormats = STCM(swapchainFormats, int64_t*);
+    sessionDescriptor->swapchainFormatsCount = 1;
 }
 
 
@@ -256,6 +279,15 @@ void mirage_app_server::debugLog() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Session OpenGL ES Config ptr info (debug only) : %p", CTSM(CTSM(sessionDescriptor->createInfo, XrSessionCreateInfo*)->next, XrGraphicsBindingOpenGLESAndroidKHR*)->config);
 
+    //Get reference space
+    XrReferenceSpaceDescriptor* referenceSpaceDescriptor = CTSM(sessionDescriptor->firstReferenceSpaceDescriptor, XrReferenceSpaceDescriptor*);
+
+    if(referenceSpaceDescriptor == CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Reference space info : NULL");
+        return;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Reference space info : %f", CTSM(referenceSpaceDescriptor->createInfo, XrReferenceSpaceCreateInfo*)->poseInReferenceSpace.orientation.w);
 }
 
 

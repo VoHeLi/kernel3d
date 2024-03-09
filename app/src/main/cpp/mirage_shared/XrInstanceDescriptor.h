@@ -30,6 +30,7 @@ public:
     XrPathDescriptor* firstPathDescriptor;
     XrSessionDescriptor* firstSessionDescriptor;
 
+
 };
 
 

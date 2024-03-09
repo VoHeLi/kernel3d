@@ -13,6 +13,7 @@
 #include <linux/un.h>
 #include <new>
 #include "mirage_shared/XrInstanceDescriptor.h"
+#include "mirage_shared/XrReferenceSpaceDescriptor.h"
 #include "mirage_shared/common_types.h"
 
 #define SOCKET_PATH "\0mirage_service_listener"
@@ -143,7 +144,32 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz, const XrInstanceCrea
 
 XrResult destroyMirageInstance(){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-XrResult pollMirageEvents(XrEventDataBuffer *eventData){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+bool firstCallMirageEvents = true;
+XrResult pollMirageEvents(XrEventDataBuffer *eventData){
+
+
+    //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "PollMirageEvents called!");
+
+
+    //TODO : IMPLEMENT LATER, WE DON'T SEND EVENTS EXCEPT FOR SESSION READY, ONLY SUPPORT 1 SESSION FOR NOW
+    if(firstCallMirageEvents) {
+        firstCallMirageEvents = false;
+
+        XrEventDataSessionStateChanged* sessionStateChanged = (XrEventDataSessionStateChanged*)eventData;
+        sessionStateChanged->type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED;
+        sessionStateChanged->next = nullptr;
+        sessionStateChanged->session = (XrSession)(((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstSessionDescriptor);
+        sessionStateChanged->state = XR_SESSION_STATE_READY;
+        sessionStateChanged->time = 0;
+
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "PollMirageEvents session ready called!");
+
+        return XR_SUCCESS;
+    }
+
+    return XR_EVENT_UNAVAILABLE;
+
+    }
 
 XrResult miragePathToString(XrPath path, uint32_t bufferCapacityInput, uint32_t *bufferCountOutput, char *buffer){
 
@@ -239,11 +265,48 @@ XrResult getMirageSystem(const XrSystemGetInfo* systemGetInfo, XrSystemId* syste
 
 XrResult getMirageSystemProperties(XrSystemId systemId, XrSystemProperties *properties){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-XrResult mirageEnumerateViewConfigurations( XrSystemId systemId, uint32_t viewConfigurationTypeCapacityInput, uint32_t *viewConfigurationTypeCountOutput, XrViewConfigurationType *viewConfigurationTypes){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult mirageEnumerateViewConfigurations( XrSystemId systemId, uint32_t viewConfigurationTypeCapacityInput, uint32_t *viewConfigurationTypeCountOutput, XrViewConfigurationType *viewConfigurationTypes){
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateViewConfigurations called!");
+
+    XrSystemIdDescriptor* systemIdDescriptor = (XrSystemIdDescriptor*) systemId;
+
+    if(viewConfigurationTypeCapacityInput == 0 || viewConfigurationTypes == nullptr){
+        *viewConfigurationTypeCountOutput = systemIdDescriptor->viewConfigurationsCount;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ViewConfig enum : Giving size!");
+        return XR_SUCCESS;
+    }
+
+    if(viewConfigurationTypeCapacityInput < systemIdDescriptor->viewConfigurationsCount){
+        *viewConfigurationTypeCountOutput = systemIdDescriptor->viewConfigurationsCount;
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "ViewConfig enum : Size error!");
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+
+    for(int i = 0; i < systemIdDescriptor->viewConfigurationsCount; i++){
+        viewConfigurationTypes[i] = systemIdDescriptor->viewConfigurations[i];
+    }
+
+    *viewConfigurationTypeCountOutput = systemIdDescriptor->viewConfigurationsCount;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateViewConfigurations done!");
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageGetViewConfigurationProperties(XrSystemId systemId, XrViewConfigurationType viewConfigurationType, XrViewConfigurationProperties *configurationProperties){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
-XrResult mirageEnumerateViewConfigurationViews(XrSystemId systemId,XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrViewConfigurationView *views){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+//TODO : NEXT
+XrResult mirageEnumerateViewConfigurationViews(XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrViewConfigurationView *views){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented");
+
+
+    return XR_ERROR_VALIDATION_FAILURE;
+
+}
 
 XrResult mirageEnumerateEnvironmentBlendModes(XrSystemId systemId, XrViewConfigurationType viewConfigurationType, uint32_t environmentBlendModeCapacityInput,uint32_t *environmentBlendModeCountOutput,XrEnvironmentBlendMode *environmentBlendModes){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
@@ -336,14 +399,33 @@ XrResult mirageEnumerateReferenceSpaces(XrSession session, //PASS TODO : maybe c
     return XR_SUCCESS;
 }
 
-XrResult mirageGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df *bounds){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult mirageGetReferenceSpaceBoundsRect(XrSession session, XrReferenceSpaceType referenceSpaceType, XrExtent2Df *bounds){
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageGetReferenceSpaceBoundsRect called!");
+
+    //TODO : Implement this later
+
+    bounds->width = 0;
+    bounds->height = 0;
+
+    return XR_SPACE_BOUNDS_UNAVAILABLE;
+}
 
 //TODO APRES
 XrResult mirageCreateReferenceSpace(XrSession session, const XrReferenceSpaceCreateInfo *createInfo, XrSpace *space){
 
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented");
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateReferenceSpace called!");
 
-    return XR_ERROR_VALIDATION_FAILURE;}
+    XrReferenceSpaceDescriptor* referenceSpaceDescriptor = NEW_SHARED(XrReferenceSpaceDescriptor, sharedMemoryDescriptor, (XrSessionDescriptor*)session, createInfo);
+
+    *space = (XrSpace)referenceSpaceDescriptor;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateReferenceSpace done!");
+
+    return XR_SUCCESS;
+
+}
 
 XrResult mirageLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation *location){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
@@ -404,7 +486,35 @@ XrResult mirageGetDisplayRefreshRateFB(XrSession session, float *displayRefreshR
 XrResult mirageRequestDisplayRefreshRateFB(XrSession session, float displayRefreshRate){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 
 
-XrResult mirageEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t *formatCountOutput, int64_t *formats){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
+XrResult mirageEnumerateSwapchainFormats(XrSession session, uint32_t formatCapacityInput, uint32_t *formatCountOutput, int64_t *formats){
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainFormats called!");
+
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
+
+    if(formatCapacityInput == 0 || formats == nullptr){
+        *formatCountOutput = sessionDescriptor->swapchainFormatsCount;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "SwapchainFormat : Giving size!");
+        return XR_SUCCESS;
+    }
+
+    if(formatCapacityInput < sessionDescriptor->swapchainFormatsCount){
+        *formatCountOutput = sessionDescriptor->swapchainFormatsCount;
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "SwapchainFormat error!");
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    for(int i = 0; i < sessionDescriptor->swapchainFormatsCount; i++){
+        formats[i] = sessionDescriptor->swapchainFormats[i];
+    }
+
+    *formatCountOutput = sessionDescriptor->swapchainFormatsCount;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainFormats done!");
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *createInfo, XrSwapchain *swapchain){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_VALIDATION_FAILURE;}
 

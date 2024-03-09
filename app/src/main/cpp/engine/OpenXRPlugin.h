@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 
+
 class OpenXRPlugin {
 public:
     OpenXRPlugin(const char* appName, GraphicsBackendManager* graphicsBackendManager);

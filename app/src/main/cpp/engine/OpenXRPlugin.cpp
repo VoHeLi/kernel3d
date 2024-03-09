@@ -189,6 +189,11 @@ XrResult OpenXRPlugin::CreateSwapchains() {
         result = xrEnumerateSwapchainFormats(_session, (uint32_t)swapchainFormats.size(), &swapchainFormatCount,
                                                 swapchainFormats.data());
 
+        //PRINT SWAPCHAIN FORMATS
+        for(int i = 0; i < swapchainFormatCount; i++){
+            __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Swapchain Format : %lx", swapchainFormats[i]);
+        }
+
         if(result != XR_SUCCESS){
             __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D", "Swap 5 %d", result);
         }
@@ -540,5 +545,6 @@ XrResult OpenXRPlugin::LocateHandJointsEXT(XrHandTrackerEXT handTracker, XrHandJ
 
     return method(handTracker, locateInfo, jointLocations);
 }
+
 
 

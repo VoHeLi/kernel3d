@@ -1,10 +1,12 @@
 #pragma once
 
 #include "XrInstanceDescriptor.h"
+#include "XrReferenceSpaceDescriptor.h"
 
 #define XR_SESSION_DESCRIPTOR_SIGNATURE 0x40558631ca921e7b
 
 class XrInstanceDescriptor;
+class XrReferenceSpaceDescriptor;
 
 class XrSessionDescriptor {
 public:
@@ -18,6 +20,9 @@ public:
     XrSessionCreateInfo* createInfo;
     XrSessionDescriptor* nextSessionDescriptor;
     XrReferenceSpaceType* referenceSpaces;
-    uint64_t referenceSpacesCount;
+    uint32_t referenceSpacesCount;
+    int64_t* swapchainFormats;
+    uint32_t swapchainFormatsCount;
+    XrReferenceSpaceDescriptor* firstReferenceSpaceDescriptor;
     //TODO : Add Graphics Bindings support for server
 };

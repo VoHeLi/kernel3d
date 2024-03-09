@@ -45,6 +45,10 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
 
     this->referenceSpaces = nullptr;
     this->referenceSpacesCount = 0;
+    this->swapchainFormats = nullptr;
+    this->swapchainFormatsCount = 0;
+
+    this->firstReferenceSpaceDescriptor = nullptr;
 
     this->created = true;
 }

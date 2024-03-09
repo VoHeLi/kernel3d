@@ -7,7 +7,8 @@
 XrSystemIdDescriptor::XrSystemIdDescriptor(shared_memory_descriptor *sharedMemoryDescriptor,
                                            XrInstanceDescriptor *instanceDescriptorServerAddr,
                                            XrSystemProperties *systemPropertiesServerAddr,
-                                           XrGraphicsRequirementsOpenGLESKHR* graphicsRequirementsOpenGleskhrServerAddr) {
+                                           XrGraphicsRequirementsOpenGLESKHR* graphicsRequirementsOpenGleskhrServerAddr,
+                                           XrViewConfigurationType* viewConfigurationTypes, int viewConfigurationsCount){
     signature = XR_SYSTEMID_SIGNATURE;
 
     this->instanceDescriptor = STCM(instanceDescriptorServerAddr, XrInstanceDescriptor*);
@@ -36,6 +37,13 @@ XrSystemIdDescriptor::XrSystemIdDescriptor(shared_memory_descriptor *sharedMemor
     g->maxApiVersionSupported = graphicsRequirementsOpenGleskhrServerAddr->maxApiVersionSupported;
 
     this->graphicsRequirements = STCM(g, XrGraphicsRequirementsOpenGLESKHR*);
+
+    XrViewConfigurationType* configurationType = static_cast<XrViewConfigurationType *>(sharedMemoryDescriptor->memory_allocate(
+            viewConfigurationsCount * sizeof(XrViewConfigurationType)));
+    memcpy(configurationType, viewConfigurationTypes, viewConfigurationsCount * sizeof(XrViewConfigurationType));
+
+    this->viewConfigurations = STCM(configurationType, XrViewConfigurationType*);
+    this->viewConfigurationsCount = viewConfigurationsCount;
 
     created = true;
 }
