@@ -300,6 +300,24 @@ void mirage_app_server::debugLog() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Path info : %s", CTSM(pathDescriptor->pathString, const char*));*/
 
+    //Print action sets
+    XrActionSetDescriptor* actionSetDescriptor = CTSM(instanceDescriptor->firstActionSetDescriptor, XrActionSetDescriptor*);
+
+    while(actionSetDescriptor != CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Action set info : %s", CTSM(actionSetDescriptor->createInfo, XrActionSetCreateInfo*)->actionSetName); //NO CTSM BECAUSE CHAR ARRAY IN STRUCT !!!
+
+        //Print actions
+        XrActionDescriptor* actionDescriptor = CTSM(actionSetDescriptor->firstActionDescriptor, XrActionDescriptor*);
+
+        while(actionDescriptor != CTSM(nullptr, void*)) {
+            __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "---> Action info : %s", CTSM(actionDescriptor->createInfo, XrActionCreateInfo*)->actionName); //NO CTSM BECAUSE CHAR ARRAY IN STRUCT !!!
+            actionDescriptor = CTSM(actionDescriptor->nextActionDescriptor, XrActionDescriptor*);
+        }
+
+
+        actionSetDescriptor = CTSM(actionSetDescriptor->nextActionSetDescriptor, XrActionSetDescriptor*);
+    }
+
 
 
     XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);

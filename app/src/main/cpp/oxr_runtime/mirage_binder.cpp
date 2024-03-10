@@ -218,14 +218,14 @@ XrResult mirageStringToPath(const char *pathString, XrPath *out_path){
 
         ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstPathDescriptor = NEW_SHARED(XrPathDescriptor, sharedMemoryDescriptor, pathString, nullptr);
 
-        *out_path = (XrPath)0;
+        *out_path = (XrPath)1;
 
         return XR_SUCCESS;
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Paths found");
 
-    uint64_t counter = 0;
+    uint64_t counter = 1;
 
     XrPathDescriptor* lastPathDescriptor = pathDescriptor;
     //TODO : Add a limit to the number of paths
@@ -535,16 +535,121 @@ XrResult mirageCreateActionSpace(XrSession session, const XrActionSpaceCreateInf
 
 
 //ACTIONS
+//    XrActionSetDescriptor* actionSetDescriptor = NEW_SHARED(XrActionSetDescriptor, sharedMemoryDescriptor, createInfo, nullptr);
+XrResult mirageCreateActionSet(const XrActionSetCreateInfo *createInfo, XrActionSet *actionSet){
 
-XrResult mirageCreateActionSet(const XrActionSetCreateInfo *createInfo, XrActionSet *actionSet){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateActionSet called!");
+
+    //DO IT THE SAME WAY THAN mirageStringToPath
+
+    XrActionSetDescriptor* actionSetDescriptor = (XrActionSetDescriptor*) ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstActionSetDescriptor;
+
+    if(actionSetDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "No action sets found");
+
+        ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstActionSetDescriptor = NEW_SHARED(XrActionSetDescriptor, sharedMemoryDescriptor, createInfo, nullptr);
+
+        *actionSet = (XrActionSet)1;
+
+        return XR_SUCCESS;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action sets found");
+
+    uint64_t counter = 1;
+
+    XrActionSetDescriptor* lastActionSetDescriptor = actionSetDescriptor;
+
+    //Check the existing action sets
+
+    while(actionSetDescriptor != nullptr){
+        if(strcmp(actionSetDescriptor->createInfo->actionSetName, createInfo->actionSetName) == 0){
+            *actionSet = (XrActionSet)counter;
+            return XR_SUCCESS;
+        }
+        lastActionSetDescriptor = actionSetDescriptor;
+        actionSetDescriptor = actionSetDescriptor->nextActionSetDescriptor;
+        counter++;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action set not found, adding it!");
+
+    lastActionSetDescriptor->nextActionSetDescriptor = NEW_SHARED(XrActionSetDescriptor, sharedMemoryDescriptor, createInfo, lastActionSetDescriptor);
+
+    *actionSet = (XrActionSet)counter;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action set added!");
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageDestroyActionSet(XrActionSet actionSet){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-XrResult mirageCreateAction(XrActionSet actionSet, const XrActionCreateInfo *createInfo, XrAction *action){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageCreateAction(XrActionSet actionSet, const XrActionCreateInfo *createInfo, XrAction *action){
+
+    //Similar way of doing it than mirageCreateActionSet
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateAction called!");
+
+    XrActionSetDescriptor* actionSetDescriptor = (XrActionSetDescriptor*) ((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstActionSetDescriptor;
+
+    if(actionSetDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_ERROR", "Wrong action set");
+
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
+
+    XrActionDescriptor* actionDescriptor = actionSetDescriptor->firstActionDescriptor;
+
+    if(actionDescriptor == nullptr) {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "No actions found");
+
+        actionSetDescriptor->firstActionDescriptor = NEW_SHARED(
+                XrActionDescriptor, sharedMemoryDescriptor, createInfo, nullptr);
+
+        *action = (XrAction) 1;
+
+        return XR_SUCCESS;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Actions found");
+
+    uint64_t counter = 1;
+
+    XrActionDescriptor* lastActionDescriptor = actionDescriptor;
+
+    //Check the existing actions
+    while(actionDescriptor != nullptr) {
+        if (strcmp(actionDescriptor->createInfo->actionName, createInfo->actionName) == 0) {
+            *action = (XrAction) counter;
+            return XR_SUCCESS;
+        }
+        lastActionDescriptor = actionDescriptor;
+        actionDescriptor = actionDescriptor->nextActionDescriptor;
+        counter++;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action not found, adding it!");
+
+    lastActionDescriptor->nextActionDescriptor = NEW_SHARED(XrActionDescriptor, sharedMemoryDescriptor, createInfo, lastActionDescriptor);
+
+    *action = (XrAction) counter;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action added!");
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageDestroyAction(XrAction action){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-XrResult mirageSuggestInteractionProfileBindings(const XrInteractionProfileSuggestedBinding *suggestedBindings){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageSuggestInteractionProfileBindings(const XrInteractionProfileSuggestedBinding *suggestedBindings){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented");
+
+    return XR_ERROR_RUNTIME_FAILURE;
+
+
+}
 
 XrResult mirageAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo *bindInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 

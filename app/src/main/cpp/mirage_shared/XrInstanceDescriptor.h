@@ -7,6 +7,7 @@
 #include "XrSystemIdDescriptor.h"
 #include "XrPathDescriptor.h"
 #include "XrSessionDescriptor.h"
+#include "XrActionSetDescriptor.h"
 
 #include <string.h>
 
@@ -15,6 +16,7 @@
 
 class XrSystemIdDescriptor;
 class XrSessionDescriptor;
+class XrActionSetDescriptor;
 
 class XrInstanceDescriptor {
 public:
@@ -29,6 +31,7 @@ public:
     XrSystemIdDescriptor* systemIdDescriptor;
     XrPathDescriptor* firstPathDescriptor;
     XrSessionDescriptor* firstSessionDescriptor;
+    XrActionSetDescriptor* firstActionSetDescriptor;
 
 
 };

@@ -32,7 +32,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
     kernel3d.cpp engine/Engine.cpp engine/GraphicsBackendManager.cpp engine/OpenXRPlugin.cpp engine/gfxwrapper_opengl.c engine/SpatialObject.cpp controllers/handtracking_inputs.cpp
     mirage_app/mirage_service.cpp mirage_app/mirage_app_server.cpp
     mirage_shared/shared_memory_descriptor.cpp mirage_shared/XrInstanceDescriptor.cpp mirage_shared/XrSystemIdDescriptor.cpp mirage_shared/XrPathDescriptor.cpp
-    mirage_shared/XrSessionDescriptor.cpp mirage_shared/XrReferenceSpaceDescriptor.cpp)
+    mirage_shared/XrSessionDescriptor.cpp mirage_shared/XrReferenceSpaceDescriptor.cpp mirage_shared/XrActionSetDescriptor.cpp mirage_shared/XrActionDescriptor.cpp)
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
 # build script, prebuilt third-party libraries, or Android system libraries.
@@ -42,7 +42,7 @@ add_library(runtime SHARED
         oxr_runtime/oxr_api_session.cpp oxr_runtime/oxr_api_system.cpp oxr_runtime/oxr_path.cpp oxr_runtime/oxr_api_verify.cpp oxr_runtime/oxr_api_instance.cpp
         oxr_runtime/oxr_api_negotiate.cpp oxr_runtime/mirage_binder.cpp
         mirage_shared/shared_memory_descriptor.cpp mirage_shared/XrInstanceDescriptor.cpp mirage_shared/XrSystemIdDescriptor.cpp mirage_shared/XrPathDescriptor.cpp
-        mirage_shared/XrSessionDescriptor.cpp mirage_shared/XrReferenceSpaceDescriptor.cpp)
+        mirage_shared/XrSessionDescriptor.cpp mirage_shared/XrReferenceSpaceDescriptor.cpp mirage_shared/XrActionSetDescriptor.cpp mirage_shared/XrActionDescriptor.cpp)
 
 #add_library(mirage SHARED
 #        mirage_app/mirage_service.cpp mirage_app/mirage_app_server.cpp
