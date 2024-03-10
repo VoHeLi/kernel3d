@@ -38,6 +38,7 @@ XrInstanceDescriptor::XrInstanceDescriptor(shared_memory_descriptor* sharedMemor
     this->firstPathDescriptor = nullptr;
     this->firstSessionDescriptor = nullptr;
     this->firstActionSetDescriptor = nullptr;
+    this->interactionProfileSuggestedBindings = nullptr;
 
     this->created = true;
 }

@@ -2,11 +2,13 @@
 
 #include "XrInstanceDescriptor.h"
 #include "XrReferenceSpaceDescriptor.h"
+#include "XrActionSpaceDescriptor.h"
 
 #define XR_SESSION_DESCRIPTOR_SIGNATURE 0x40558631ca921e7b
 
 class XrInstanceDescriptor;
 class XrReferenceSpaceDescriptor;
+class XrActionSpaceDescriptor;
 
 class XrSessionDescriptor {
 public:
@@ -25,6 +27,9 @@ public:
     int64_t* swapchainFormats;
     uint32_t swapchainFormatsCount;
     XrViewConfigurationType primaryViewConfigurationType;
+    uint32_t countActionSets;
+    XrActionSet* actionSets;
+    XrActionSpaceDescriptor* firstActionSpaceDescriptor;
 
     //TODO : Add Graphics Bindings support for server
 };

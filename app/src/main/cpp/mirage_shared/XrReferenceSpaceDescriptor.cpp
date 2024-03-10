@@ -28,6 +28,8 @@ XrReferenceSpaceDescriptor::XrReferenceSpaceDescriptor(shared_memory_descriptor 
         currentReferenceSpaceDescriptor->nextReferenceSpaceDescriptor = this;
     }
 
+    this->created = true;
+
 }
 
 XrReferenceSpaceDescriptor::~XrReferenceSpaceDescriptor() {

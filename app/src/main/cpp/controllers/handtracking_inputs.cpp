@@ -63,7 +63,7 @@ void updateHandJoints(XrTime currentTime, XrSpace baseSpace, XrHandEXT handType)
             .jointLocations = handType == XR_HAND_LEFT_EXT ? leftJointLocations : rightJointLocations
     };
 
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOR2", "Updating hand tracking, time : %d, space : %p", currentTime, baseSpace);
+    //__android_log_print(ANDROID_LOG_DEBUG, "PICOR2", "Updating hand tracking, time : %d, space : %p", currentTime, baseSpace);
 
     XrResult result;
     switch(handType){
@@ -77,7 +77,7 @@ void updateHandJoints(XrTime currentTime, XrSpace baseSpace, XrHandEXT handType)
             break;
     }
 
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOR2", "Updated Hand joints : %d ", result);
+    //__android_log_print(ANDROID_LOG_DEBUG, "PICOR2", "Updated Hand joints : %d ", result);
 
 }
 

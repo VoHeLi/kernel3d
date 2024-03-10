@@ -266,7 +266,7 @@ void mirage_app_server::debugLog() {
     std::chrono::duration<double> duration = currentTime.time_since_epoch();
     double seconds = duration.count();
 
-    if(seconds - lastTime < 1) {
+    if(seconds - lastTime < 5) {
         return;
     }
     lastTime = seconds;

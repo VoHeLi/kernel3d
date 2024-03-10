@@ -273,7 +273,22 @@ XrResult getMirageSystem(const XrSystemGetInfo* systemGetInfo, XrSystemId* syste
     return XR_SUCCESS;
 }
 
-XrResult getMirageSystemProperties(XrSystemId systemId, XrSystemProperties *properties){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult getMirageSystemProperties(XrSystemId systemId, XrSystemProperties *properties){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Get Mirage System Properties!");
+
+    XrSystemIdDescriptor* systemIdDescriptor = (XrSystemIdDescriptor*) systemId;
+
+    if(systemIdDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "SystemIdDescriptor is null!");
+        return XR_ERROR_VALIDATION_FAILURE;
+    }
+
+    *properties = *systemIdDescriptor->systemProperties;
+
+    return XR_SUCCESS;
+
+}
 
 XrResult mirageEnumerateViewConfigurations( XrSystemId systemId, uint32_t viewConfigurationTypeCapacityInput, uint32_t *viewConfigurationTypeCountOutput, XrViewConfigurationType *viewConfigurationTypes){
 
@@ -531,7 +546,19 @@ XrResult mirageLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpac
 
 XrResult mirageDestroySpace(XrSpace space){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-XrResult mirageCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo *createInfo, XrSpace *space){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+//TODO NEXT
+XrResult mirageCreateActionSpace(XrSession session, const XrActionSpaceCreateInfo *createInfo, XrSpace *space){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateActionSpace called!");
+
+    XrActionSpaceDescriptor* actionSpaceDescriptor = NEW_SHARED(XrActionSpaceDescriptor, sharedMemoryDescriptor, (XrSessionDescriptor*)session, createInfo);
+
+    *space = (XrSpace)actionSpaceDescriptor;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateActionSpace done!");
+
+    return XR_SUCCESS;
+}
 
 
 //ACTIONS
@@ -644,16 +671,76 @@ XrResult mirageDestroyAction(XrAction action){ __android_log_print(ANDROID_LOG_D
 
 XrResult mirageSuggestInteractionProfileBindings(const XrInteractionProfileSuggestedBinding *suggestedBindings){
 
-    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented");
+    //TODO TEST
 
-    return XR_ERROR_RUNTIME_FAILURE;
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageSuggestInteractionProfileBindings called!");
 
+    //DEEP COPY THE STRUCTURE
+    XrInstanceDescriptor* instanceDescriptor = (XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr();
 
+    XrInteractionProfileSuggestedBinding* suggestedBindingsCopy = NEW_SHARED(XrInteractionProfileSuggestedBinding);
+    suggestedBindingsCopy->type = suggestedBindings->type;
+    suggestedBindingsCopy->next = nullptr;
+    suggestedBindingsCopy->interactionProfile = suggestedBindings->interactionProfile;
+    suggestedBindingsCopy->countSuggestedBindings = suggestedBindings->countSuggestedBindings;
+
+    suggestedBindingsCopy->suggestedBindings = (XrActionSuggestedBinding*)malloc(suggestedBindings->countSuggestedBindings * sizeof(XrActionSuggestedBinding));
+
+    for(int i = 0; i < suggestedBindings->countSuggestedBindings; i++){
+        ((XrActionSuggestedBinding *)suggestedBindingsCopy->suggestedBindings)[i].action = suggestedBindings->suggestedBindings[i].action;
+        ((XrActionSuggestedBinding *)suggestedBindingsCopy->suggestedBindings)[i].binding = suggestedBindings->suggestedBindings[i].binding;
+    }
+
+    /*if(instanceDescriptor->interactionProfileSuggestedBindings != nullptr){
+        for(int i = 0; i < instanceDescriptor->interactionProfileSuggestedBindings->countSuggestedBindings; i++){
+            sharedMemoryDescriptor->memory_free((void*)instanceDescriptor->interactionProfileSuggestedBindings->suggestedBindings);
+        }
+        sharedMemoryDescriptor->memory_free((void*)instanceDescriptor->interactionProfileSuggestedBindings);
+    }*/
+
+    instanceDescriptor->interactionProfileSuggestedBindings = suggestedBindingsCopy;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageSuggestInteractionProfileBindings done!");
+
+    return XR_SUCCESS;
 }
 
-XrResult mirageAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo *bindInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageAttachSessionActionSets(XrSession session, const XrSessionActionSetsAttachInfo *bindInfo){
 
-XrResult mirageGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState *interactionProfile){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageAttachSessionActionSets called!");
+
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
+
+    if(sessionDescriptor->countActionSets != 0 || sessionDescriptor->actionSets != nullptr){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Action sets already attached!");
+        return XR_ERROR_ACTIONSETS_ALREADY_ATTACHED;
+    }
+
+    sessionDescriptor->countActionSets = bindInfo->countActionSets;
+    sessionDescriptor->actionSets = (XrActionSet*)malloc(bindInfo->countActionSets * sizeof(XrActionSet));
+
+    for(int i = 0; i < bindInfo->countActionSets; i++){
+        sessionDescriptor->actionSets[i] = bindInfo->actionSets[i];
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageAttachSessionActionSets done!");
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageGetCurrentInteractionProfile(XrSession session, XrPath topLevelUserPath, XrInteractionProfileState *interactionProfile){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageGetCurrentInteractionProfile called!");
+
+    //For now just return the suggested bindings
+    XrInstanceDescriptor* instanceDescriptor = (XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr();
+
+    interactionProfile->type = XR_TYPE_INTERACTION_PROFILE_STATE;
+    interactionProfile->next = nullptr;
+    interactionProfile->interactionProfile = instanceDescriptor->interactionProfileSuggestedBindings->interactionProfile;
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageGetActionStateBoolean(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateBoolean *data){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 

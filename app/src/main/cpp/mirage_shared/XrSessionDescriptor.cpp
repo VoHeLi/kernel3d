@@ -51,6 +51,11 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
     this->firstReferenceSpaceDescriptor = nullptr;
     this->primaryViewConfigurationType = (XrViewConfigurationType)0; //UNINITIALIZED
 
+    this->countActionSets = 0;
+    this->actionSets = nullptr;
+
+    this->firstActionSpaceDescriptor = nullptr;
+
     this->created = true;
 }
 

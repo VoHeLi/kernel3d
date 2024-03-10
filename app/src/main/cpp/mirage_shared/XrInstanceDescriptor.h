@@ -32,7 +32,7 @@ public:
     XrPathDescriptor* firstPathDescriptor;
     XrSessionDescriptor* firstSessionDescriptor;
     XrActionSetDescriptor* firstActionSetDescriptor;
-
+    XrInteractionProfileSuggestedBinding* interactionProfileSuggestedBindings;
 
 };
 

@@ -18,5 +18,4 @@ public:
     XrReferenceSpaceDescriptor* nextReferenceSpaceDescriptor;
     XrSessionDescriptor* sessionDescriptor;
     XrReferenceSpaceCreateInfo* createInfo;
-    XrEventDataBaseHeader* eventDataBaseHeader;
 };

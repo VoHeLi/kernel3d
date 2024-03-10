@@ -11,7 +11,7 @@
 
 #define PASS_MIRAGE(function, ...) __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR", "xr%s called!", #function); \
 XrResult res = mirage##function(__VA_ARGS__); \
-__android_log_print(ANDROID_LOG_DEBUG, "PICOREUR", "xr%s called with result : %p", #function, res);\
+__android_log_print(ANDROID_LOG_DEBUG, "PICOREUR", "xr%s called with result : %p", #function, res);               \
 
 
 //! OpenXR API function @ep{xrCreateActionSet}
@@ -74,6 +74,8 @@ xrSuggestInteractionProfileBindings(XrInstance instance,
     //return GetControllerDefaultBinding(suggestedBindings);
 
     PASS_MIRAGE(SuggestInteractionProfileBindings, suggestedBindings);
+
+    return res;
 }
 
 //! OpenXR API function @ep{xrAttachSessionActionSets}
