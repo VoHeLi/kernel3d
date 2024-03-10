@@ -804,12 +804,29 @@ XrResult mirageEnumerateSwapchainFormats(XrSession session, uint32_t formatCapac
 
     *formatCountOutput = sessionDescriptor->swapchainFormatsCount;
 
+    //LOG THE OUTPUT FORMATS
+//    for(int i = 0; i < *formatCountOutput; i++){
+//        __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "SwapchainFormat : %d", formats[i]);
+//    }
+
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainFormats done!");
 
     return XR_SUCCESS;
 }
 
-XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *createInfo, XrSwapchain *swapchain){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *createInfo, XrSwapchain *swapchain){
+
+    //TODO : Implement this
+
+    //Print createInfo data
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "MirageCreateSwapchain called!");
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "CreateInfo : Width : %u, Height : %u, Format : %ld, ArraySize : %u, MipCount : %u, SampleCount : %u, UsageFlags : %lu, CreateFlags : %lu",
+                        createInfo->width, createInfo->height, createInfo->format, createInfo->arraySize, createInfo->mipCount, createInfo->sampleCount, createInfo->usageFlags, createInfo->createFlags);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented");
+
+    return XR_ERROR_RUNTIME_FAILURE;}
 
 XrResult mirageDestroySwapchain(XrSwapchain swapchain){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 

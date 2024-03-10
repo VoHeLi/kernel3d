@@ -252,7 +252,7 @@ void mirage_app_server::populateInitialSessionProperties() {
     swapchainFormats[4] = 36012;
 
     sessionDescriptor->swapchainFormats = STCM(swapchainFormats, int64_t*);
-    sessionDescriptor->swapchainFormatsCount = 1;
+    sessionDescriptor->swapchainFormatsCount = 5;
 
 }
 
