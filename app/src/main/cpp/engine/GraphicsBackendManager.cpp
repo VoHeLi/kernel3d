@@ -13,6 +13,7 @@
 #include "../glm/gtc/quaternion.hpp"
 #include "SpatialObject.h"
 #include "../glm/gtc/type_ptr.hpp"
+#include "mirage_shared/common_types.h"
 
 GraphicsBackendManager::GraphicsBackendManager(ANativeWindow* nativeWindow) {
     _nativeWindow = nativeWindow;
@@ -492,8 +493,11 @@ void GraphicsBackendManager::CheckProgram(GLuint prog) {
     }
 }
 
+AHardwareBuffer* debugHardwareBuffer = nullptr;
+bool debugHardwareBufferInited = false;
+
 int GraphicsBackendManager::GetDisplayTexture(int id) {
-    switch(id){
+    /*switch(id){
         case 1:
             return _texture1;
             break;
@@ -503,7 +507,23 @@ int GraphicsBackendManager::GetDisplayTexture(int id) {
         case 3:
             return _texture3;
             break;
+    }*/
+
+    if(!debugHardwareBufferInited && debugHardwareBuffer != nullptr){
+        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Linking display with hardwarebuffer : %p", debugHardwareBuffer);
+
+        EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(debugHardwareBuffer);
+
+        EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture1);
+        glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, eglImageKHR);
+
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Display linked with hardwarebuffer : %p", debugHardwareBuffer);
+        debugHardwareBufferInited = true;
     }
+
+    return _texture1;
 }
 
 /*// Initialize the gl extensions. Note we have to open a window.

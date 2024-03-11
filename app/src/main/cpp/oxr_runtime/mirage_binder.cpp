@@ -890,43 +890,25 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
 
     //Bind to texture
     glBindTexture(GL_TEXTURE_2D, texture);
-    //glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImageKHR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImageKHR);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
 
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 
-
-    //FBO
-//    GLuint fbo;
-//    glGenFramebuffers(1, &fbo);
-//    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-//
-//    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-//
-//    if(status != GL_FRAMEBUFFER_COMPLETE){
-//        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Framebuffer not complete!");
-//    }
-//
-//    //Render some stuff on the texture
-//
-//    //Clear color
-//    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-//    glClear(GL_COLOR_BUFFER_BIT);
-//
-//    glFinish();
-
-    //Unbind
-
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glBindTexture(GL_TEXTURE_2D, texture);
     GLubyte* pixels = (GLubyte*)malloc(256 * 256 * 4); // 4 channels (RGBA)
-    glReadPixels(50, 50, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glReadPixels(50, 50, 200, 200, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     for(int i = 0; i < 16; i++){
         __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "Pixel : %d", pixels[i]);

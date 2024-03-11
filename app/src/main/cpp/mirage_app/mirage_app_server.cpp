@@ -260,6 +260,38 @@ void mirage_app_server::populateInitialSessionProperties() {
 }
 
 
+//TODO REMOVE: ---------------------------------------------------------
+#include <vector>
+
+std::vector<unsigned char> generateGradient(int width, int height) {
+    std::vector<unsigned char> gradientData(width * height * 4); // RGBA format
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Calculer les valeurs R, G, B, A en fonction des coordonnées x et y
+            unsigned char r = static_cast<unsigned char>(255 * x / (width - 1));
+            unsigned char g = static_cast<unsigned char>(255 * y / (height - 1));
+            unsigned char b = 0; // Bleu fixé à 0 pour ce dégradé
+            unsigned char a = 255; // Opacité maximale
+
+            // Insérer les valeurs de couleur dans le tableau de données
+            int index = (y * width + x) * 4;
+            gradientData[index] = r;
+            gradientData[index + 1] = g;
+            gradientData[index + 2] = b;
+            gradientData[index + 3] = a;
+        }
+    }
+
+    return gradientData;
+}
+
+
+
+//TODO-------------------------------------------------------------------------------------------
+
+extern AHardwareBuffer* debugHardwareBuffer;
+
 void mirage_app_server::receiveHardwareBufferFromClient() {
 
 
@@ -271,27 +303,55 @@ void mirage_app_server::receiveHardwareBufferFromClient() {
     AHardwareBuffer* hardwareBuffer;
     AHardwareBuffer_recvHandleFromUnixSocket(_client_fd, &hardwareBuffer);
 
+    //DEBUG : PRINT DESC
+    AHardwareBuffer_Desc desc;
+    AHardwareBuffer_describe(hardwareBuffer, &desc);
+
+    __android_log_print(ANDROID_LOG_WARN, "MIRAGE", "Received hardware buffer desc : %d, %d", desc.width, desc.height);
+
     //EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(hardwareBuffer);
 
     //EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
 
+
+    /*EGLClientBuffer eglBuffer = eglGetNativeClientBufferANDROID(hardwareBuffer);
+    EGLint attrs[] = { EGL_NONE };
+
+    EGLImageKHR eglImage = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglBuffer, attrs);
+
+    if (eglImage == EGL_NO_IMAGE_KHR) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "EGLImage creation failed");
+    }*/
+
+    //print eglImage data
+
+    /*std::vector<unsigned char> grad = generateGradient(256, 256);
 
     //Bind to texture
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, texture);
 
-    //glTexSubImage2D(GL_TEXTURE_EXTERNAL_OES, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, hardwareBuffer);
+    //glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, hardwareBuffer);
 
-    //Read pixels
-    uint32_t pixels = 0;
-    glReadPixels(454,457,1,1,GL_RGBA,GL_UNSIGNED_BYTE, &pixels);
-    if(glGetError() == GL_NO_ERROR){
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received pixel : %x", pixels);
-    } else {
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Error reading pixels");
-    }
+    glTexSubImage2D(GL_TEXTURE_EXTERNAL_OES, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, grad.data());
 
+    GLuint framebuffer;
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, texture, 0);
+
+    GLubyte* pixels = (GLubyte*)malloc(256 * 256 * 4); // 4 channels (RGBA)
+    glReadPixels(50, 50, 200, 200, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+
+    for(int i = 0; i < 16; i++){
+        __android_log_print(ANDROID_LOG_WARN, "MIRAGE PICOREUR", "Pixel received : %d", pixels[i]);
+    }*/
+
+    debugHardwareBuffer = hardwareBuffer;
 
     //DEBUG
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received hardware buffer : %p", hardwareBuffer);

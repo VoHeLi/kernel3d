@@ -202,9 +202,11 @@ public class Kernel3DLauncher extends Activity{
 
         if (appId != 1) return;
 
-        SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId, appId);
+        //SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId, appId);
 
-        switch (appId) {
+        packageName = packageName1; //DEBUG
+
+        /*switch (appId) {
             case 1:
                 surfaceTexture1 = surfaceTexture;
                 packageName = packageName1;
@@ -217,7 +219,7 @@ public class Kernel3DLauncher extends Activity{
                 surfaceTexture3 = surfaceTexture;
                 packageName = packageName3;
                 break;
-        }
+        }*/
 
         Log.d("Androx Kernel3D", "Java method test!");
 
@@ -234,9 +236,9 @@ public class Kernel3DLauncher extends Activity{
 
 
             Log.d("Androx Kernel3D", "Java method C!");
-            int id = mPresentationDisplay.getDisplayId();
+            //int id = mPresentationDisplay.getDisplayId();
             //int id = 1;
-            Log.d("Androx Kernel3D", "Java method D! id : " + id);
+            //Log.d("Androx Kernel3D", "Java method D! id : " + id);
             ActivityOptions options = ActivityOptions.makeBasic();//.setLaunchDisplayId(id);
             //options.setLaunchDisplayId(id);
             //intent.putExtra("android.intent.extra.DISPLAY_ID", id);
@@ -255,7 +257,7 @@ public class Kernel3DLauncher extends Activity{
             Log.d("Androx Kernel3D", "after launching App!");
             //Thread.sleep(1000);
             Log.d("Androx Kernel3D", "after sleep");
-            surfaceTexture.updateTexImage();
+            //surfaceTexture.updateTexImage();
 
             Log.d("Androx Kernel3D", "after updating texture!");
 
@@ -275,37 +277,40 @@ public class Kernel3DLauncher extends Activity{
     //TODO DISSOCIATE INPUT FROM DISPLAY
     public void updateDisplayTexture(boolean pinching, float cx, float cy) {
 
+        //DEBUG
+        return;
+
         //Log.d("Androx Kernel3D", "CX : " + cx +" CY : " + cy);
 
         //Touch the screen in the middle
-        MotionEvent.PointerCoords[] pointerCoordsArr = new MotionEvent.PointerCoords[1];
-        pointerCoordsArr[0] = new MotionEvent.PointerCoords();
-        pointerCoordsArr[0].x = displayHeight * cx + displayWidth/2;
-        pointerCoordsArr[0].y = displayHeight - (displayHeight * cy + displayHeight/2);
-        pointerCoordsArr[0].pressure = 1.0f;
-        pointerCoordsArr[0].size = 1.0f;
-        int currentAction = getCurrentAction(pinching);
-
-        MotionEvent.PointerProperties[] arr1 = new MotionEvent.PointerProperties[1];
-        MotionEvent.PointerProperties pointerProperties = new MotionEvent.PointerProperties();
-        pointerProperties.toolType = 1;
-        pointerProperties.id = MotionEvent.ACTION_BUTTON_RELEASE; //MotionEvent.ACTION_BUTTON_RELEASE
-        arr1[0] = pointerProperties;
-
-        MotionEvent obtain = MotionEvent.obtain(this.downTime, SystemClock.uptimeMillis(), currentAction, 1, arr1, pointerCoordsArr, 0, 0, 1.0f, 1.0f, 0, 0, 4098, 0);
-
-        try {
-            obtain.getClass().getDeclaredMethod("setLynxDisplayId", new Class[]{Integer.TYPE}).invoke(obtain, new Object[]{Integer.valueOf(mVirtualDisplay.getDisplay().getDisplayId())});
-            ((Boolean) this.im.getClass().getDeclaredMethod("injectInputEvent", new Class[]{InputEvent.class, Integer.TYPE}).invoke(this.im, new Object[]{obtain, 1})).booleanValue();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-        this.lastAction = currentAction;
+//        MotionEvent.PointerCoords[] pointerCoordsArr = new MotionEvent.PointerCoords[1];
+//        pointerCoordsArr[0] = new MotionEvent.PointerCoords();
+//        pointerCoordsArr[0].x = displayHeight * cx + displayWidth/2;
+//        pointerCoordsArr[0].y = displayHeight - (displayHeight * cy + displayHeight/2);
+//        pointerCoordsArr[0].pressure = 1.0f;
+//        pointerCoordsArr[0].size = 1.0f;
+//        int currentAction = getCurrentAction(pinching);
+//
+//        MotionEvent.PointerProperties[] arr1 = new MotionEvent.PointerProperties[1];
+//        MotionEvent.PointerProperties pointerProperties = new MotionEvent.PointerProperties();
+//        pointerProperties.toolType = 1;
+//        pointerProperties.id = MotionEvent.ACTION_BUTTON_RELEASE; //MotionEvent.ACTION_BUTTON_RELEASE
+//        arr1[0] = pointerProperties;
+//
+//        MotionEvent obtain = MotionEvent.obtain(this.downTime, SystemClock.uptimeMillis(), currentAction, 1, arr1, pointerCoordsArr, 0, 0, 1.0f, 1.0f, 0, 0, 4098, 0);
+//
+//        try {
+//            obtain.getClass().getDeclaredMethod("setLynxDisplayId", new Class[]{Integer.TYPE}).invoke(obtain, new Object[]{Integer.valueOf(mVirtualDisplay.getDisplay().getDisplayId())});
+//            ((Boolean) this.im.getClass().getDeclaredMethod("injectInputEvent", new Class[]{InputEvent.class, Integer.TYPE}).invoke(this.im, new Object[]{obtain, 1})).booleanValue();
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//
+//        this.lastAction = currentAction;
         //Update surfaces
-        surfaceTexture1.updateTexImage();
+        //surfaceTexture1.updateTexImage();
         /*surfaceTexture2.updateTexImage();
         surfaceTexture3.updateTexImage();*/
         //Log.d("Androx Kernel3D", "after updating tex!");

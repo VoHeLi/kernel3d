@@ -9,6 +9,7 @@
 #include <string>
 #include <list>
 #include <map>
+#include <android/hardware_buffer.h>
 
 class GraphicsBackendManager {
 public:
@@ -59,3 +60,4 @@ private:
     GLuint _texture3;
 
 };
+

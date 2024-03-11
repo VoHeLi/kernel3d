@@ -161,6 +161,8 @@ void Engine::engineMain() {
 
         openXrPlugin->PrepareRendering();
 
+        graphicsBackendManager->GetDisplayTexture(1); //Just to trigger the hardware buffer
+
         //DEBUG
         engineUpdateTest();
 
