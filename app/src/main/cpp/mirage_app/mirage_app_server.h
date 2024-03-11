@@ -62,6 +62,8 @@ private:
     void populateSystemProperties();
 
     void populateInitialSessionProperties();
+
+    void receiveHardwareBufferFromClient();
 };
 
 

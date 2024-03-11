@@ -5,6 +5,12 @@
 
 #include "mirage_shared/shared_memory_descriptor.h"
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+
+
 
 static int client_fd;
 static shared_memory_descriptor* sharedMemoryDescriptor = nullptr;

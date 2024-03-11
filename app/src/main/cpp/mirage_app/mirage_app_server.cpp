@@ -46,6 +46,9 @@ void mirage_app_server::initializeServerThread() {
             case cts_instruction::POPULATE_INITIAL_SESSION_PROPERTIES:
                 populateInitialSessionProperties();
                 break;
+            case cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER:
+                receiveHardwareBufferFromClient();
+                break;
             default:
                 break;
         }
@@ -257,6 +260,44 @@ void mirage_app_server::populateInitialSessionProperties() {
 }
 
 
+void mirage_app_server::receiveHardwareBufferFromClient() {
+
+
+    //PING BACK TO SAY READY
+    cts_instruction instruction = cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER_READY;
+    send(_client_fd, &instruction, sizeof(cts_instruction), 0);
+
+    //RECEIVE HARDWARE BUFFER
+    AHardwareBuffer* hardwareBuffer;
+    AHardwareBuffer_recvHandleFromUnixSocket(_client_fd, &hardwareBuffer);
+
+    //EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(hardwareBuffer);
+
+    //EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
+
+
+    //Bind to texture
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, texture);
+
+    //glTexSubImage2D(GL_TEXTURE_EXTERNAL_OES, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, hardwareBuffer);
+
+    //Read pixels
+    uint32_t pixels = 0;
+    glReadPixels(454,457,1,1,GL_RGBA,GL_UNSIGNED_BYTE, &pixels);
+    if(glGetError() == GL_NO_ERROR){
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received pixel : %x", pixels);
+    } else {
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Error reading pixels");
+    }
+
+
+    //DEBUG
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received hardware buffer : %p", hardwareBuffer);
+}
+
+
 double lastTime = 0;
 
 void mirage_app_server::debugLog() {
@@ -339,6 +380,8 @@ void mirage_app_server::debugLog() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Reference space info : %f", CTSM(referenceSpaceDescriptor->createInfo, XrReferenceSpaceCreateInfo*)->poseInReferenceSpace.orientation.w);
 }
+
+
 
 
 

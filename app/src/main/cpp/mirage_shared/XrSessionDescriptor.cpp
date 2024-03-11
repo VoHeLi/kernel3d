@@ -55,6 +55,7 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
     this->actionSets = nullptr;
 
     this->firstActionSpaceDescriptor = nullptr;
+    this->firstSwapchainDescriptor = nullptr;
 
     this->created = true;
 }
