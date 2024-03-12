@@ -20,10 +20,17 @@ class XrSessionDescriptor;
 class XrActionSetDescriptor;
 class XrSwapchainDescriptor;
 
+struct XrEventNode {
+    XrEventDataBuffer* event;
+    XrEventNode* next;
+};
+
 class XrInstanceDescriptor {
 public:
     XrInstanceDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, void* vmClientAddr, void* clazClientAddr, const XrInstanceCreateInfo *createInfoClientAddr);
     ~XrInstanceDescriptor();
+    void pushEvent(shared_memory_descriptor* sharedMemoryDescriptor, XrEventDataBuffer* event); //From runtime
+    XrEventDataBuffer* popEvent(shared_memory_descriptor* sharedMemoryDescriptor); //From client
 
     int64_t signature;
     bool created = false;
@@ -38,6 +45,9 @@ public:
 
 
     XrSwapchainDescriptor* tempSwapchainDescriptor;
+
+private:
+    XrEventNode* firstEventNode; //Pas besoin de mutex, mais les 2 fonctions doivent être appelées de manière synchrone, il y a utilisation d'un blocage avec les unix sockets
 };
 
 

@@ -41,10 +41,73 @@ XrInstanceDescriptor::XrInstanceDescriptor(shared_memory_descriptor* sharedMemor
     this->interactionProfileSuggestedBindings = nullptr;
 
     this->tempSwapchainDescriptor = nullptr;
+    this->firstEventNode = nullptr;
+
 
     this->created = true;
 }
 
 XrInstanceDescriptor::~XrInstanceDescriptor() {
 
+}
+
+
+void XrInstanceDescriptor::pushEvent(shared_memory_descriptor* sharedMemoryDescriptor, XrEventDataBuffer *event) {
+
+
+
+    XrEventNode* node = NEW_SHARED(XrEventNode);
+
+    //DEEP COPY OF event
+    XrEventDataBuffer* e = NEW_SHARED(XrEventDataBuffer);
+    *e = *event;
+
+    node->event = STCM(e, XrEventDataBuffer*);
+    node->next = nullptr;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "pushEvent: %d", ((XrEventDataSessionStateChanged*)event)->state);
+
+    if(firstEventNode == nullptr || firstEventNode == CTSM(nullptr, void*)){
+        firstEventNode = STCM(node, XrEventNode*);
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "firstEventNode: %d", CTSM(CTSM(firstEventNode, XrEventNode*)->event,XrEventDataSessionStateChanged*)->state);
+
+    } else {
+        XrEventNode* currentEventNode = CTSM(firstEventNode, XrEventNode*);
+        while(currentEventNode->next != CTSM(nullptr, void*)){
+            currentEventNode = CTSM(currentEventNode->next, XrEventNode*);
+        }
+        currentEventNode->next = STCM(node, XrEventNode*);
+    }
+
+}
+
+XrEventDataBuffer *XrInstanceDescriptor::popEvent(shared_memory_descriptor* sharedMemoryDescriptor) {
+    //NO CTSM, STCM here, it's from the client
+
+
+
+
+    if(firstEventNode == nullptr){
+        return nullptr;
+    }
+
+    if(firstEventNode->next == nullptr){
+        XrEventDataBuffer* event = firstEventNode->event;
+
+        sharedMemoryDescriptor->memory_free(firstEventNode);
+
+        firstEventNode = nullptr;
+        return event;
+    }
+
+    XrEventNode* node = firstEventNode;
+    while(node->next->next != nullptr){
+        node = node->next;
+    }
+
+    XrEventDataBuffer* event = node->next->event;
+    sharedMemoryDescriptor->memory_free(node->next);
+    node->next = nullptr;
+
+    return event;
 }

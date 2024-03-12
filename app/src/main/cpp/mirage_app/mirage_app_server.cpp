@@ -253,10 +253,20 @@ void mirage_app_server::populateInitialSessionProperties() {
     swapchainFormats[2] = 33189; //0x81A5 //GL_DEPTH_COMPONENT16
     swapchainFormats[3] = 35056; //0x88F0 //GL_DEPTH24_STENCIL8
     swapchainFormats[4] = 36012; //0x8CAC //GL_DEPTH_COMPONENT32F
-    int a = GL_RGBA;
 
     sessionDescriptor->swapchainFormats = STCM(swapchainFormats, int64_t*);
     sessionDescriptor->swapchainFormatsCount = 5;
+
+    //Push sessionReady event to instance
+    XrEventDataSessionStateChanged sessionStateChanged = {
+        .type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED,
+        .next = nullptr,
+        .session = (XrSession)STCM(sessionDescriptor, XrSessionDescriptor*),
+        .state = XR_SESSION_STATE_READY,
+        .time = 0,
+    };
+
+    instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
 
 }
 

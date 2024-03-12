@@ -63,3 +63,5 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
 XrSessionDescriptor::~XrSessionDescriptor() {
 
 }
+
+

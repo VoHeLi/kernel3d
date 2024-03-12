@@ -18,6 +18,7 @@ public:
     XrSessionDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, XrInstanceDescriptor* instanceDescriptor, const XrSessionCreateInfo *createInfo);
     ~XrSessionDescriptor();
 
+
     uint64_t signature;
     bool created;
     XrInstanceDescriptor* instanceDescriptor;
@@ -33,6 +34,7 @@ public:
     XrActionSet* actionSets;
     XrActionSpaceDescriptor* firstActionSpaceDescriptor;
     XrSwapchainDescriptor* firstSwapchainDescriptor;
+
 
     //TODO : Add Graphics Bindings support for server
 };

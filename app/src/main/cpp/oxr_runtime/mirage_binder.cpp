@@ -145,31 +145,33 @@ XrResult initializeMirageAppInstance(void* vm, void* clazz, const XrInstanceCrea
 
 XrResult destroyMirageInstance(){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-bool firstCallMirageEvents = true;
 XrResult pollMirageEvents(XrEventDataBuffer *eventData){
 
 
-    //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "PollMirageEvents called!");
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "PollMirageEvents");
 
+    XrInstanceDescriptor* instanceDescriptor = (XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr();
 
-    //TODO : IMPLEMENT LATER, WE DON'T SEND EVENTS EXCEPT FOR SESSION READY, ONLY SUPPORT 1 SESSION FOR NOW
-    if(firstCallMirageEvents) {
-        firstCallMirageEvents = false;
-
-        XrEventDataSessionStateChanged* sessionStateChanged = (XrEventDataSessionStateChanged*)eventData;
-        sessionStateChanged->type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED;
-        sessionStateChanged->next = nullptr;
-        sessionStateChanged->session = (XrSession)(((XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr())->firstSessionDescriptor);
-        sessionStateChanged->state = XR_SESSION_STATE_READY;
-        sessionStateChanged->time = 0;
-
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "PollMirageEvents session ready called!");
-
-        return XR_SUCCESS;
+    if(instanceDescriptor == nullptr){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "InstanceDescriptor is null!");
+        return XR_ERROR_VALIDATION_FAILURE;
     }
 
-    return XR_EVENT_UNAVAILABLE;
+    XrEventDataBuffer* eventDataBuffer = instanceDescriptor->popEvent(sharedMemoryDescriptor);
 
+    if(eventDataBuffer == nullptr){
+        //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "No event found!");
+        return XR_EVENT_UNAVAILABLE;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Event found : %d", ((XrEventDataSessionStateChanged*)eventDataBuffer)->state);
+
+    *eventData = *eventDataBuffer;
+    sharedMemoryDescriptor->memory_free(eventDataBuffer);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "PollMirageEventsEnd");
+
+    return XR_SUCCESS;
     }
 
 XrResult miragePathToString(XrPath path, uint32_t bufferCapacityInput, uint32_t *bufferCountOutput, char *buffer){
@@ -470,11 +472,33 @@ XrResult mirageBeginSession(XrSession session, const XrSessionBeginInfo *beginIn
 
 XrResult mirageEndSession(XrSession session){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-XrResult mirageWaitFrame(XrSession session, const XrFrameWaitInfo *frameWaitInfo, XrFrameState *frameState){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageWaitFrame(XrSession session, const XrFrameWaitInfo *frameWaitInfo, XrFrameState *frameState){
 
-XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
 
-XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    sleep(1);
+
+    frameState->predictedDisplayTime = 1.0;
+    frameState->predictedDisplayPeriod = 1.0;
+    frameState->shouldRender = XR_FALSE;
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginInfo){
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+    return XR_SUCCESS;
+
+}
+
+XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+
+    return XR_SUCCESS;
+
+}
 
 XrResult mirageRequestExitSession(XrSession session){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
@@ -542,7 +566,20 @@ XrResult mirageCreateReferenceSpace(XrSession session, const XrReferenceSpaceCre
 
 }
 
-XrResult mirageLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation *location){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpaceLocation *location){
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+    *location = XrSpaceLocation{XR_TYPE_SPACE_LOCATION,
+                                nullptr, XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT,
+                                XrPosef{
+        XrQuaternionf{0, 0, 0, 1},
+        XrVector3f{0, 0, 0}}};
+
+    //TODO USE REAL SPACE LOCATION
+
+    return XR_SUCCESS;
+
+}
 
 XrResult mirageDestroySpace(XrSpace space){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
