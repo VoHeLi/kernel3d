@@ -885,6 +885,7 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
 
     //TODO : Implement this
     //TODO : Support CUBEMAPS
+    //TODO : LINK TO THE SESSION OPENGL ES CONTEXT (It should be ok in this part of the code however)
 
     //Print createInfo data
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "MirageCreateSwapchain called!");
@@ -1003,9 +1004,32 @@ XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCap
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages called!");
 
+    XrSwapchainDescriptor* swapchainDescriptor = (XrSwapchainDescriptor*)swapchain;
 
+    if(imageCapacityInput == 0 || images == nullptr){
+        *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages Giving size!");
+        return XR_SUCCESS;
+    }
 
-    return XR_ERROR_RUNTIME_FAILURE;
+    if(imageCapacityInput < swapchainDescriptor->createInfo->arraySize){
+        *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages Size error!");
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    for(int i = 0; i < swapchainDescriptor->createInfo->arraySize; i++){
+        XrSwapchainImageOpenGLESKHR* image = &(((XrSwapchainImageOpenGLESKHR*)images)[i]);
+        image->type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
+        image->next = nullptr;
+        image->image = swapchainDescriptor->clientTextureIds[i];
+    }
+
+    *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages done!");
+
+    return XR_SUCCESS;
 }
 
 XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo *acquireInfo, uint32_t *index){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
