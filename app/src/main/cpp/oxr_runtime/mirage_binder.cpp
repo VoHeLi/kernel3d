@@ -824,9 +824,9 @@ std::vector<unsigned char> generateGradient(int width, int height) {
         for (int x = 0; x < width; ++x) {
             // Calculer les valeurs R, G, B, A en fonction des coordonnées x et y
             unsigned char r = static_cast<unsigned char>(255 * x / (width - 1));
-            unsigned char g = static_cast<unsigned char>(255 * y / (height - 1));
-            unsigned char b = 0; // Bleu fixé à 0 pour ce dégradé
-            unsigned char a = 255; // Opacité maximale
+            unsigned char g = 128;
+            unsigned char b = static_cast<unsigned char>(255 * y / (height - 1));
+            unsigned char a = 250; // Opacité maximale
 
             // Insérer les valeurs de couleur dans le tableau de données
             int index = (y * width + x) * 4;
@@ -844,121 +844,169 @@ std::vector<unsigned char> generateGradient(int width, int height) {
 
 //TODO-------------------------------------------------------------------------------------------
 
+void intermediateGenerateSwapchainImage(const XrSwapchainCreateInfo *createInfo, uint32_t format, uint32_t pixelStride, AHardwareBuffer** hardwareBuffer, GLuint* texture){
+    //Create hardware buffer
+    AHardwareBuffer_Desc bufferDesc;
+    bufferDesc.width = createInfo->width;
+    bufferDesc.height = createInfo->height;
+    bufferDesc.format = format;
+    bufferDesc.layers = 1;
+    bufferDesc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER; //Color + Depth + Stencil
+    bufferDesc.stride = createInfo->width * pixelStride;
+    bufferDesc.rfu0 = 0;
+    bufferDesc.rfu1 = 0;
+
+    //Allocate the hardware buffer
+    AHardwareBuffer_allocate(&bufferDesc, hardwareBuffer);
+
+    //Create the swapchain image
+    EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(*hardwareBuffer);
+    EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
+
+
+    //Create OpenGL ES Texture and link it to the hardware buffer
+    glGenTextures(1, texture);
+    glBindTexture(GL_TEXTURE_2D, *texture);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImageKHR);
+
+    //Optional parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    //TODO : REMOVE THIS DEBUG ----------------------------------------------------------------------------------------------
+    std::vector<unsigned char> gradientData = generateGradient(createInfo->width, createInfo->height); //DEBUG
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, createInfo->width, createInfo->height, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
+    //TODO : ----------------------------------------------------------------------------------------------------------------
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *createInfo, XrSwapchain *swapchain){
 
     //TODO : Implement this
+    //TODO : Support CUBEMAPS
 
     //Print createInfo data
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "MirageCreateSwapchain called!");
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "CreateInfo : Width : %u, Height : %u, Format : %ld, ArraySize : %u, MipCount : %u, SampleCount : %u, UsageFlags : %lu, CreateFlags : %lu",
-                        createInfo->width, createInfo->height, createInfo->format, createInfo->arraySize, createInfo->mipCount, createInfo->sampleCount, createInfo->usageFlags, createInfo->createFlags);
-
-
-    //For now it's a mess
-
-    std::vector<unsigned char> gradientData = generateGradient(256, 256);
-
-    GLuint texture;
-    glGenTextures(1, &texture);
-
-//    glBindTexture(GL_TEXTURE_2D, texture);
-//    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, createInfo->width, createInfo->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
-//    //glBindTexture(GL_TEXTURE_2D, 0);
-//
-//    //Get the AHardwareBuffer from the texture
-//    glBindTexture(GL_TEXTURE_2D, texture);
-//    EGLImageKHR eglImage = eglCreateImage(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, nullptr, nullptr);
-//    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
-
-    AHardwareBuffer_Desc bufferDesc;
-    bufferDesc.width = 256; //DEBUG
-    bufferDesc.height = 256; //DEBUG
-    bufferDesc.format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
-    bufferDesc.layers = 1;
-    bufferDesc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT;
-    bufferDesc.stride = 256 * 4; //DEBUG
-    bufferDesc.rfu0 = 0;
-    bufferDesc.rfu1 = 0;
-
-    AHardwareBuffer* hardwareBuffer;
-    AHardwareBuffer_allocate(&bufferDesc, &hardwareBuffer);
-
-    EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(hardwareBuffer);
-
-    EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
-
-    //Bind to texture
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImageKHR);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
-
-    GLuint framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-
-    GLubyte* pixels = (GLubyte*)malloc(256 * 256 * 4); // 4 channels (RGBA)
-    glReadPixels(50, 50, 200, 200, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    for(int i = 0; i < 16; i++){
-        __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "Pixel : %d", pixels[i]);
+    uint32_t format = 0;
+    uint32_t pixelStride = 4;
+    switch(createInfo->format){
+        case 0x8058: //RGBA8_EXT
+            format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+            pixelStride = 4;
+            break;
+        case 0x8C43: //SRGB8_ALPHA8_EXT
+            format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM; //it's the same bytes, but should be used differently on the server
+            pixelStride = 4;
+            break;
+        case 0x81A5: //GL_DEPTH_COMPONENT16
+            format = AHARDWAREBUFFER_FORMAT_D16_UNORM;
+            pixelStride = 2;
+            break;
+        case 0x88F0: //GL_DEPTH24_STENCIL8
+            format = AHARDWAREBUFFER_FORMAT_D24_UNORM_S8_UINT;
+            pixelStride = 4;
+            break;
+        case 0x8CAC: //GL_DEPTH_COMPONENT32F
+            format = AHARDWAREBUFFER_FORMAT_D32_FLOAT;
+            pixelStride = 4;
+            break;
     }
 
-    //Print the same but from the data directly
-    for(int i = 0; i < 16; i++){
-        __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "Real Pixel : %d", gradientData[i]);
+    if(format == 0){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Format not supported!");
+        return XR_ERROR_SWAPCHAIN_FORMAT_UNSUPPORTED;
     }
 
+    //IT IS NOT MANDATORY TO ALLOCATE THEM IN SHARED MEMORY
+    AHardwareBuffer** hardwareBuffers = (AHardwareBuffer**)sharedMemoryDescriptor->memory_allocate(createInfo->arraySize * sizeof(AHardwareBuffer*));
+    GLuint* textures = (GLuint*)sharedMemoryDescriptor->memory_allocate(createInfo->arraySize * sizeof(GLuint));
 
-    uint64_t hardwareBufferId;
-    AHardwareBuffer_getId(hardwareBuffer, &hardwareBufferId);
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "AHardwareBuffer RealID : %lx", hardwareBufferId);
+    for(int i = 0; i < createInfo->arraySize; i++){
+        AHardwareBuffer* hardwareBuffer;
+        GLuint texture;
+        intermediateGenerateSwapchainImage(createInfo, format, pixelStride, &hardwareBuffer, &texture);
 
-    //Send the hardware buffer to the client
+        hardwareBuffers[i] = hardwareBuffer;
+        textures[i] = texture;
+    }
 
-    //SEND A BUFFER TO THE CLIENT TO SAY THAT WE ARE SENDING A HARDWARE BUFFER
+    XrSwapchainDescriptor* swapchainDescriptor = NEW_SHARED(XrSwapchainDescriptor, sharedMemoryDescriptor, (XrSessionDescriptor*)session, createInfo, hardwareBuffers, textures);
+
+
+    //TELL THE SERVER THE SWAPCHAIN WHERE THE HARDWARE BUFFERS ARE
+    XrInstanceDescriptor* instanceDescriptor = (XrInstanceDescriptor*)sharedMemoryDescriptor->get_instance_ptr();
+    if(instanceDescriptor->tempSwapchainDescriptor != nullptr){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Swapchain already being created, multithreading on xrCreateSwapchain inside the same instance not supported!");
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+    instanceDescriptor->tempSwapchainDescriptor = swapchainDescriptor;
+
+    //Send the hardware buffers to the client
+
+    //SEND A BUFFER TO THE CLIENT TO SAY THAT WE ARE SENDING HARDWARE BUFFERS
     cts_instruction instruction = cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER;
     send(client_fd, &instruction, sizeof(cts_instruction), 0);
 
-    //CHECK PING BACK
-    recv(client_fd, &instruction, sizeof(cts_instruction), 0);
+    for(int i = 0; i < createInfo->arraySize; i++) {
+        //Ready to send an hardware buffer
+        recv(client_fd, &instruction, sizeof(cts_instruction), 0);
+        if (instruction != cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER_READY) {
+            __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Ping back error!");
+        }
 
-    if(instruction != cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER_READY){
-        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Ping back error!");
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER",
+                            "Sending AHardwareBuffer to client!");
+
+        AHardwareBuffer_sendHandleToUnixSocket(hardwareBuffers[i], client_fd);
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "AHardwareBuffer sent to server!");
     }
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Sending AHardwareBuffer to client!");
-
-    AHardwareBuffer_sendHandleToUnixSocket(hardwareBuffer, client_fd);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "AHardwareBuffer sent to client!");
-
-    //CHECK PING BACK
+    //CHECK PING BACK, AND SENDING HARDWARE BUFFERS OK
     recv(client_fd, &instruction, sizeof(cts_instruction), 0);
 
     if(instruction != cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER){
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Ping back error!");
     }
 
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "End of AHardwareBuffer");
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "AHardwareBuffers sent to server");
 
-    sleep(10);
+    //ADD THE SWAPCHAIN TO THE SESSION, USE THE SAME CODE STRUCTURE THAN XRCREATEACTIONSET, a linked list
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
 
-    return XR_ERROR_RUNTIME_FAILURE;}
+    if(sessionDescriptor->firstSwapchainDescriptor == nullptr){
+        sessionDescriptor->firstSwapchainDescriptor = swapchainDescriptor;
+        *swapchain = (XrSwapchain)swapchainDescriptor;
+
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateSwapchain done (1)!");
+        return XR_SUCCESS;
+    }
+
+
+    XrSwapchainDescriptor* lastSwapchainDescriptor = sessionDescriptor->firstSwapchainDescriptor;
+    while(lastSwapchainDescriptor->nextSwapchainDescriptor != nullptr){
+        lastSwapchainDescriptor = lastSwapchainDescriptor->nextSwapchainDescriptor;
+    }
+
+    lastSwapchainDescriptor->nextSwapchainDescriptor = swapchainDescriptor;
+    *swapchain = (XrSwapchain)swapchainDescriptor;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateSwapchain done (2)!");
+
+    return XR_SUCCESS;
+}
 
 XrResult mirageDestroySwapchain(XrSwapchain swapchain){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t *imageCountOutput, XrSwapchainImageBaseHeader *images){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t *imageCountOutput, XrSwapchainImageBaseHeader *images){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages called!");
+
+
+
+    return XR_ERROR_RUNTIME_FAILURE;
+}
 
 XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo *acquireInfo, uint32_t *index){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 

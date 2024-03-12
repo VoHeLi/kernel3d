@@ -8,6 +8,7 @@
 #include "XrPathDescriptor.h"
 #include "XrSessionDescriptor.h"
 #include "XrActionSetDescriptor.h"
+#include "XrSwapchainDescriptor.h"
 
 #include <string.h>
 
@@ -17,6 +18,7 @@
 class XrSystemIdDescriptor;
 class XrSessionDescriptor;
 class XrActionSetDescriptor;
+class XrSwapchainDescriptor;
 
 class XrInstanceDescriptor {
 public:
@@ -34,6 +36,8 @@ public:
     XrActionSetDescriptor* firstActionSetDescriptor;
     XrInteractionProfileSuggestedBinding* interactionProfileSuggestedBindings;
 
+
+    XrSwapchainDescriptor* tempSwapchainDescriptor;
 };
 
 

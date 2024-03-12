@@ -40,6 +40,8 @@ XrInstanceDescriptor::XrInstanceDescriptor(shared_memory_descriptor* sharedMemor
     this->firstActionSetDescriptor = nullptr;
     this->interactionProfileSuggestedBindings = nullptr;
 
+    this->tempSwapchainDescriptor = nullptr;
+
     this->created = true;
 }
 

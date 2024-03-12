@@ -5,7 +5,8 @@
 XrSwapchainDescriptor::XrSwapchainDescriptor(shared_memory_descriptor *sharedMemoryDescriptor,
                                              XrSessionDescriptor *sessionDescriptor,
                                              const XrSwapchainCreateInfo *createInfo,
-                                             AHardwareBuffer* aHardwareBuffer) {
+                                             AHardwareBuffer** clientHardwareBuffers,
+                                             GLuint* clientTextureIds) {
 
     signature = XR_SWAPCHAIN_DESCRIPTOR_SIGNATURE;
     this->sessionDescriptor = sessionDescriptor;
@@ -23,8 +24,6 @@ XrSwapchainDescriptor::XrSwapchainDescriptor(shared_memory_descriptor *sharedMem
     this->createInfo->arraySize = createInfo->arraySize;
     this->createInfo->mipCount = createInfo->mipCount;
 
-
-
     this->nextSwapchainDescriptor = nullptr;
 
     if(sessionDescriptor->firstSwapchainDescriptor == nullptr){
@@ -37,7 +36,12 @@ XrSwapchainDescriptor::XrSwapchainDescriptor(shared_memory_descriptor *sharedMem
         currentReferenceSpaceDescriptor->nextSwapchainDescriptor = this;
     }
 
-    this->aHardwareBuffer = aHardwareBuffer; //TODO CHANGE
+    this->clientHardwareBuffers = clientHardwareBuffers;
+    this->clientTextureIds = clientTextureIds;
+    this->bufferCount = createInfo->arraySize;
+
+    this->nextSwapchainDescriptor = nullptr; //We handle this a little bit differently in the mirage_binder
+
 
     this->created = true;
 

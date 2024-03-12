@@ -3,14 +3,14 @@
 #include "XrInstanceDescriptor.h"
 #include "XrSessionDescriptor.h"
 
-#define XR_SWAPCHAIN_DESCRIPTOR_SIGNATURE 0xd76fb262e0c246ee
+#define XR_SWAPCHAIN_DESCRIPTOR_SIGNATURE 0xd76fb26340c246ee
 
 class XrSessionDescriptor;
 
 
 class XrSwapchainDescriptor{
 public:
-    XrSwapchainDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, XrSessionDescriptor* sessionDescriptor, const XrSwapchainCreateInfo *createInfo, AHardwareBuffer* aHardwareBuffer);
+    XrSwapchainDescriptor(shared_memory_descriptor* sharedMemoryDescriptor, XrSessionDescriptor* sessionDescriptor, const XrSwapchainCreateInfo *createInfo, AHardwareBuffer** clientHardwareBuffers, GLuint* clientTextureIds);
     ~XrSwapchainDescriptor();
 
     uint64_t signature;
@@ -18,5 +18,9 @@ public:
     XrSwapchainDescriptor* nextSwapchainDescriptor;
     XrSessionDescriptor* sessionDescriptor;
     XrSwapchainCreateInfo* createInfo;
-    AHardwareBuffer* aHardwareBuffer;
+    AHardwareBuffer** clientHardwareBuffers;
+    AHardwareBuffer** serverHardwareBuffers; //THE ADDRESS IS DIRECTLY STORED IN THE SERVER VIRTUAL SPACE MEMORY
+    GLuint* clientTextureIds;
+    GLuint* serverTextureIds; //THE ADDRESS IS DIRECTLY STORED IN THE SERVER VIRTUAL SPACE MEMORY
+    uint32_t bufferCount;
 };

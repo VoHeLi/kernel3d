@@ -71,7 +71,7 @@ bool mirage_app_server::isAccessible() {
 }
 
 void mirage_app_server::initializeSharedMemory() {
-    _sharedMemoryFD = ASharedMemory_create("serverToClientMemory", sizeof(shared_memory_descriptor));
+    _sharedMemoryFD = ASharedMemory_create("MirageSharedMemory", sizeof(shared_memory_descriptor));
 
     char* sharedMemoryPtr = (char *) mmap(NULL, sizeof(shared_memory_descriptor), PROT_WRITE | PROT_READ, MAP_SHARED, _sharedMemoryFD, 0);
 
@@ -248,11 +248,12 @@ void mirage_app_server::populateInitialSessionProperties() {
     //[32856] 35907 33189 35056 36012;
     int64_t* swapchainFormats = static_cast<int64_t *>(sharedMemoryDescriptor->memory_allocate(
             5 * sizeof(int64_t)));
-    swapchainFormats[0] = 32856;
-    swapchainFormats[1] = 35907;
-    swapchainFormats[2] = 33189;
-    swapchainFormats[3] = 35056;
-    swapchainFormats[4] = 36012;
+    swapchainFormats[0] = 32856; //0x8058 //RGBA8_EXT
+    swapchainFormats[1] = 35907; //0x8C43 //SRGB8_ALPHA8_EXT
+    swapchainFormats[2] = 33189; //0x81A5 //GL_DEPTH_COMPONENT16
+    swapchainFormats[3] = 35056; //0x88F0 //GL_DEPTH24_STENCIL8
+    swapchainFormats[4] = 36012; //0x8CAC //GL_DEPTH_COMPONENT32F
+    int a = GL_RGBA;
 
     sessionDescriptor->swapchainFormats = STCM(swapchainFormats, int64_t*);
     sessionDescriptor->swapchainFormatsCount = 5;
@@ -260,101 +261,48 @@ void mirage_app_server::populateInitialSessionProperties() {
 }
 
 
-//TODO REMOVE: ---------------------------------------------------------
-#include <vector>
-
-std::vector<unsigned char> generateGradient(int width, int height) {
-    std::vector<unsigned char> gradientData(width * height * 4); // RGBA format
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            // Calculer les valeurs R, G, B, A en fonction des coordonnées x et y
-            unsigned char r = static_cast<unsigned char>(255 * x / (width - 1));
-            unsigned char g = static_cast<unsigned char>(255 * y / (height - 1));
-            unsigned char b = 0; // Bleu fixé à 0 pour ce dégradé
-            unsigned char a = 255; // Opacité maximale
-
-            // Insérer les valeurs de couleur dans le tableau de données
-            int index = (y * width + x) * 4;
-            gradientData[index] = r;
-            gradientData[index + 1] = g;
-            gradientData[index + 2] = b;
-            gradientData[index + 3] = a;
-        }
-    }
-
-    return gradientData;
-}
-
-
-
-//TODO-------------------------------------------------------------------------------------------
-
 extern AHardwareBuffer* debugHardwareBuffer;
 
 void mirage_app_server::receiveHardwareBufferFromClient() {
 
+    XrInstanceDescriptor* instanceDescriptor = CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
 
-    //PING BACK TO SAY READY
-    cts_instruction instruction = cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER_READY;
-    send(_client_fd, &instruction, sizeof(cts_instruction), 0);
+    if(instanceDescriptor == CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Instance is null");
+        return;
+    }
 
-    //RECEIVE HARDWARE BUFFER
-    AHardwareBuffer* hardwareBuffer;
-    AHardwareBuffer_recvHandleFromUnixSocket(_client_fd, &hardwareBuffer);
+    XrSwapchainDescriptor* swapchainDescriptor = CTSM(instanceDescriptor->tempSwapchainDescriptor, XrSwapchainDescriptor*);
+    int count = swapchainDescriptor->bufferCount;
 
-    //DEBUG : PRINT DESC
-    AHardwareBuffer_Desc desc;
-    AHardwareBuffer_describe(hardwareBuffer, &desc);
+    AHardwareBuffer** hardwareBuffers = (AHardwareBuffer**)sharedMemoryDescriptor->memory_allocate(count * sizeof(AHardwareBuffer*));
 
-    __android_log_print(ANDROID_LOG_WARN, "MIRAGE", "Received hardware buffer desc : %d, %d", desc.width, desc.height);
+    for(int i = 0; i < count; i++){
+        //PING TO SAY READY
+        cts_instruction instruction = cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER_READY;
+        send(_client_fd, &instruction, sizeof(cts_instruction), 0);
 
-    //EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(hardwareBuffer);
+        //RECEIVE HARDWARE BUFFER
+        AHardwareBuffer* hardwareBuffer = nullptr;
+        AHardwareBuffer_recvHandleFromUnixSocket(_client_fd, &hardwareBuffer);
+        hardwareBuffers[i] = hardwareBuffer;
 
-    //EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
+        //DEBUG : PRINT DESC TODO REMOVE
+        AHardwareBuffer_Desc desc;
+        AHardwareBuffer_describe(hardwareBuffer, &desc);
 
+        __android_log_print(ANDROID_LOG_WARN, "MIRAGE", "Received hardware buffer desc : %d, %d", desc.width, desc.height);
+    }
 
-    /*EGLClientBuffer eglBuffer = eglGetNativeClientBufferANDROID(hardwareBuffer);
-    EGLint attrs[] = { EGL_NONE };
+    swapchainDescriptor->serverHardwareBuffers = hardwareBuffers;
 
-    EGLImageKHR eglImage = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglBuffer, attrs);
+    //clear temp swapchain descriptor
+    instanceDescriptor->tempSwapchainDescriptor = nullptr; //VERY IMPORTANT
 
-    if (eglImage == EGL_NO_IMAGE_KHR) {
-        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "EGLImage creation failed");
-    }*/
+    //TODO LINK TO GL TEXTURE
 
-    //print eglImage data
-
-    /*std::vector<unsigned char> grad = generateGradient(256, 256);
-
-    //Bind to texture
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, texture);
-
-    //glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, hardwareBuffer);
-
-    glTexSubImage2D(GL_TEXTURE_EXTERNAL_OES, 0, 0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, grad.data());
-
-    GLuint framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_EXTERNAL_OES, texture, 0);
-
-    GLubyte* pixels = (GLubyte*)malloc(256 * 256 * 4); // 4 channels (RGBA)
-    glReadPixels(50, 50, 200, 200, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
-
-    for(int i = 0; i < 16; i++){
-        __android_log_print(ANDROID_LOG_WARN, "MIRAGE PICOREUR", "Pixel received : %d", pixels[i]);
-    }*/
-
-    debugHardwareBuffer = hardwareBuffer;
-
-    //DEBUG
-    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received hardware buffer : %p", hardwareBuffer);
+    debugHardwareBuffer = hardwareBuffers[0]; //DEBUG
+    //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received hardware buffer : %p", hardwareBuffers[0]);
 }
 
 
