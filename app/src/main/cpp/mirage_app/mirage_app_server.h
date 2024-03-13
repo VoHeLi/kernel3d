@@ -42,6 +42,11 @@ public:
 
     void debugLog();
 
+    void updateBegin();
+
+    void updateEnd();
+
+    bool _isInitialized;
 private:
     shared_memory_descriptor* sharedMemoryDescriptor;
     int _sharedMemoryFD;
@@ -50,20 +55,22 @@ private:
     bool _isAccessible;
     std::thread _serverInitializationThread;
     std::thread _serverDestroyThread;
-    bool _isInitialized;
+    XrTime _lastUpdateTime;
+    uint64_t _frameIndex;
+    //TODO : add frame_counter;
 
+    XrTime getCurrentTimeNanos();
     void initializeServerThread();
     void destroyServerThread();
     void initializeSharedMemory();
     void initializeServerSocket();
     void handleClientInitialization();
     void sendFDToClient(int fd);
-
     void populateSystemProperties();
-
     void populateInitialSessionProperties();
-
     void receiveHardwareBufferFromClient();
+
+
 };
 
 

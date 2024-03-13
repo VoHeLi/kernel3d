@@ -474,19 +474,35 @@ XrResult mirageEndSession(XrSession session){ __android_log_print(ANDROID_LOG_DE
 
 XrResult mirageWaitFrame(XrSession session, const XrFrameWaitInfo *frameWaitInfo, XrFrameState *frameState){
 
-    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+    //__android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
 
-    sleep(1);
+    //Send a message to the server to wait for a frame
+    cts_instruction instruction = cts_instruction::WAIT_FRAME;
+    send(client_fd, &instruction, sizeof(cts_instruction), 0);
 
-    frameState->predictedDisplayTime = 1.0;
-    frameState->predictedDisplayPeriod = 1.0;
-    frameState->shouldRender = XR_FALSE;
+    //Receive the same instruction pinged back, when the frame wait has ended
+    recv(client_fd, &instruction, sizeof(cts_instruction), 0);
+    if(instruction != cts_instruction::WAIT_FRAME){
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "WaitFrame : Instruction error!");
+        return XR_ERROR_RUNTIME_FAILURE;
+    }
+
+    //Get session descriptor
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
+
+    //Retrieve data from the shared memory
+    *frameState = *sessionDescriptor->waitFrameState;
+
+    //Print the frame state
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Frame State : Predicted Time : %ld, Predicted delay : %ld, Should render : %d", frameState->predictedDisplayTime, frameState->predictedDisplayPeriod, frameState->shouldRender);
 
     return XR_SUCCESS;
 }
 
 XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginInfo){
-    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+    //__android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+    //TODO : Implement this later
 
     return XR_SUCCESS;
 
@@ -495,14 +511,25 @@ XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginI
 XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
     __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
 
+    //Display the frameEndInfo
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Frame End Info : Display Time : %ld, Layer Count : %d", frameEndInfo->displayTime, frameEndInfo->layerCount);
+
+
 
     return XR_SUCCESS;
-
 }
 
 XrResult mirageRequestExitSession(XrSession session){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
 
-XrResult mirageLocateViews(XrSession session, const XrViewLocateInfo *viewLocateInfo, XrViewState *viewState, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrView *views){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageLocateViews(XrSession session, const XrViewLocateInfo *viewLocateInfo, XrViewState *viewState, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrView *views){
+
+    //TODO IMPLEMENT THIS LATER
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+
+
+
+    return XR_SUCCESS;}
 
 //SPACE
 

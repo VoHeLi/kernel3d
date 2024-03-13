@@ -57,6 +57,14 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
     this->firstActionSpaceDescriptor = nullptr;
     this->firstSwapchainDescriptor = nullptr;
 
+    //Init waitFrameState
+    this->waitFrameState = NEW_SHARED(XrFrameState);
+    this->waitFrameState->type = XR_TYPE_FRAME_STATE;
+    this->waitFrameState->next = nullptr;
+    this->waitFrameState->predictedDisplayTime = 0;
+    this->waitFrameState->predictedDisplayPeriod = 0;
+    this->waitFrameState->shouldRender = false;
+
     this->created = true;
 }
 

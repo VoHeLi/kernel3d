@@ -46,4 +46,25 @@ engineUpdateTest() {
     for(int i = 0; i < servers.size(); i++){
         servers[i]->debugLog();
     }
+
+    //TODO PASS IF AN APP IS TOO LONG TO UPDATE, WE SKIP IT UNTIL NEXT FRAME
+
+    //We make a copy, so if begin and end are always called together
+    bool* running = (bool*)malloc(sizeof(bool)*servers.size());
+    for(int i = 0; i < servers.size(); i++){
+        running[i] = servers[i]->_isInitialized;
+    }
+
+
+    for(int i = 0; i < servers.size(); i++){
+        if (running[i]) {
+            servers[i]->updateBegin();
+        }
+    }
+
+    for(int i = 0; i < servers.size(); i++){
+        if (running[i]) {
+            servers[i]->updateEnd();
+        }
+    }
 }

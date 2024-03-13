@@ -2,8 +2,15 @@
 #include "mirage_shared/XrInstanceDescriptor.h"
 #include <chrono>
 #include <ctime>
+#include <time.h>
 
 #include "mirage_shared/common_types.h"
+
+XrTime mirage_app_server::getCurrentTimeNanos(){
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (XrTime)(ts.tv_sec * 1000000000ULL + ts.tv_nsec);
+}
 
 mirage_app_server::mirage_app_server() {
     _isAccessible = false;
@@ -48,6 +55,13 @@ void mirage_app_server::initializeServerThread() {
                 break;
             case cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER:
                 receiveHardwareBufferFromClient();
+                break;
+            case cts_instruction::WAIT_FRAME:
+                //Ping back
+                __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Initialization ends, xrWaitFrame() called!");
+                _lastUpdateTime = getCurrentTimeNanos();
+                _frameIndex = 0;
+                _isInitialized = true;
                 break;
             default:
                 break;
@@ -232,6 +246,7 @@ void mirage_app_server::populateInitialSessionProperties() {
 
     //Get the child until null to fill last session
     while(CTSM(sessionDescriptor->nextSessionDescriptor, XrSessionDescriptor*) != CTSM(nullptr, void*)) {
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "ALERT : MULTIPLE SESSIONS NOT SURE TO BE SUPPORTED YET!");
         sessionDescriptor = CTSM(sessionDescriptor->nextSessionDescriptor, XrSessionDescriptor*);
     }
 
@@ -263,7 +278,7 @@ void mirage_app_server::populateInitialSessionProperties() {
         .next = nullptr,
         .session = (XrSession)STCM(sessionDescriptor, XrSessionDescriptor*),
         .state = XR_SESSION_STATE_READY,
-        .time = 0,
+        .time = getCurrentTimeNanos(), //TODO : GET TIME?
     };
 
     instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
@@ -397,6 +412,49 @@ void mirage_app_server::debugLog() {
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Reference space info : %f", CTSM(referenceSpaceDescriptor->createInfo, XrReferenceSpaceCreateInfo*)->poseInReferenceSpace.orientation.w);
+}
+
+void mirage_app_server::updateBegin() {
+    //We do the approximation of the time, TODO : USE THE REAL TIME FOR MORE ACCURACY
+    XrTime currentTime = getCurrentTimeNanos();
+    XrDuration deltaTime = currentTime - _lastUpdateTime;
+    _lastUpdateTime = currentTime;
+
+    //Get instance and then the first session and then the frameState
+    XrInstanceDescriptor* instanceDescriptor = CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
+    XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);
+    XrFrameState* frameState = CTSM(sessionDescriptor->waitFrameState, XrFrameState*);
+
+    //We update the frame state
+    frameState->predictedDisplayTime = currentTime + deltaTime;
+    frameState->predictedDisplayPeriod = deltaTime;
+    frameState->shouldRender = _frameIndex > 3 ? XR_TRUE : XR_FALSE;
+
+    //Send event to instance
+    _frameIndex++;
+    if(_frameIndex > 3)
+    {
+        XrEventDataSessionStateChanged sessionStateChanged = {
+            .type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED,
+            .next = nullptr,
+            .session = (XrSession)STCM(sessionDescriptor, XrSessionDescriptor*),
+            .state = XR_SESSION_STATE_SYNCHRONIZED,
+            .time = currentTime,
+        };
+
+        instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
+    }
+
+    //We end the client xrWaitFrame()
+    cts_instruction instruction = cts_instruction::WAIT_FRAME;
+    send(_client_fd, &instruction, sizeof(cts_instruction), 0);
+}
+
+void mirage_app_server::updateEnd() {
+    //We wait for the client to end xrWaitFrame()
+    cts_instruction instruction = cts_instruction::WAIT_FRAME;
+    recv(_client_fd, &instruction, sizeof(cts_instruction), 0);
+
 }
 
 

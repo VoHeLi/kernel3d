@@ -34,6 +34,7 @@ public:
     XrActionSet* actionSets;
     XrActionSpaceDescriptor* firstActionSpaceDescriptor;
     XrSwapchainDescriptor* firstSwapchainDescriptor;
+    XrFrameState* waitFrameState;
 
 
     //TODO : Add Graphics Bindings support for server
