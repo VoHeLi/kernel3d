@@ -43,9 +43,9 @@ Java_com_androx_kernel3d_Kernel3DLauncher_mirageInit(JNIEnv *env, jclass clazz) 
 JNIEXPORT void JNICALL
 engineUpdateTest() {
 
-    for(int i = 0; i < servers.size(); i++){
-        servers[i]->debugLog();
-    }
+//    for(int i = 0; i < servers.size(); i++){
+//        servers[i]->debugLog();
+//    }
 
     //TODO PASS IF AN APP IS TOO LONG TO UPDATE, WE SKIP IT UNTIL NEXT FRAME
 

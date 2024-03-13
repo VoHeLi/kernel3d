@@ -10,7 +10,8 @@
 #include <GLES/gl.h>
 #include <GLES/glext.h>
 
-
+//DEBUG
+static int rainbow_counter = 0;
 
 static int client_fd;
 static shared_memory_descriptor* sharedMemoryDescriptor = nullptr;

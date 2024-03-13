@@ -65,6 +65,9 @@ XrSessionDescriptor::XrSessionDescriptor(shared_memory_descriptor *sharedMemoryD
     this->waitFrameState->predictedDisplayPeriod = 0;
     this->waitFrameState->shouldRender = false;
 
+    this->views = nullptr;
+    this->viewCount = 0;
+
     this->created = true;
 }
 

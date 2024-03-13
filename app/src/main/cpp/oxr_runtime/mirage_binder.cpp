@@ -500,7 +500,7 @@ XrResult mirageWaitFrame(XrSession session, const XrFrameWaitInfo *frameWaitInfo
 }
 
 XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginInfo){
-    //__android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+    __android_log_print(ANDROID_LOG_WARN, "PICOREUR2", "Unimplemented");
 
     //TODO : Implement this later
 
@@ -509,12 +509,31 @@ XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginI
 }
 
 XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
-    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+    __android_log_print(ANDROID_LOG_WARN, "PICOREUR2", "Unimplemented");
 
     //Display the frameEndInfo
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Frame End Info : Display Time : %ld, Layer Count : %d", frameEndInfo->displayTime, frameEndInfo->layerCount);
 
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
+    XrSwapchainDescriptor* swapchain = (XrSwapchainDescriptor*)sessionDescriptor->firstSwapchainDescriptor;
 
+    GLuint texture = ((XrSwapchainDescriptor*)swapchain)->clientTextureIds[0];
+    glBindTexture(GL_TEXTURE_2D, texture);
+    GLuint fbo;
+    glGenBuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    float r = ((float)(rainbow_counter % 800)) / 799.0f;
+    float g = ((float)(rainbow_counter % 400)) / 399.0f;
+    float b = ((float)(rainbow_counter % 200)) / 199.0f;
+    glClearColor(r, g, b, 1.0f);
+    rainbow_counter += 1;
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &fbo);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glFinish();
 
     return XR_SUCCESS;
 }
@@ -523,13 +542,39 @@ XrResult mirageRequestExitSession(XrSession session){ __android_log_print(ANDROI
 
 XrResult mirageLocateViews(XrSession session, const XrViewLocateInfo *viewLocateInfo, XrViewState *viewState, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrView *views){
 
-    //TODO IMPLEMENT THIS LATER
-    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+    //TODO USE viewLocateInfo data for better view location
+    __android_log_print(ANDROID_LOG_WARN, "PICOREUR2", "Unimplemented");
 
+    viewState->type = XR_TYPE_VIEW_STATE;
+    viewState->next = nullptr;
+    viewState->viewStateFlags = XR_VIEW_STATE_ORIENTATION_VALID_BIT | XR_VIEW_STATE_POSITION_VALID_BIT |
+                                XR_VIEW_STATE_ORIENTATION_TRACKED_BIT | XR_VIEW_STATE_POSITION_TRACKED_BIT;
 
+    //You do the same than enumerate
+    XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
 
+    if(viewCapacityInput == 0 || views == nullptr){
+        *viewCountOutput = sessionDescriptor->viewCount;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ViewLocate : Giving size!");
+        return XR_SUCCESS;
+    }
 
-    return XR_SUCCESS;}
+    if(viewCapacityInput < sessionDescriptor->viewCount){
+        *viewCountOutput = sessionDescriptor->viewCount;
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ViewLocate : Size error!");
+        return XR_ERROR_SIZE_INSUFFICIENT;
+    }
+
+    for(int i = 0; i < sessionDescriptor->viewCount; i++){
+        views[i] = sessionDescriptor->views[i];
+    }
+
+    *viewCountOutput = sessionDescriptor->viewCount;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageLocateViews done!");
+
+    return XR_SUCCESS;
+}
 
 //SPACE
 
@@ -979,6 +1024,8 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
             break;
     }
 
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Format : %d", format);
+
     if(format == 0){
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Format not supported!");
         return XR_ERROR_SWAPCHAIN_FORMAT_UNSUPPORTED;
@@ -988,16 +1035,37 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
     AHardwareBuffer** hardwareBuffers = (AHardwareBuffer**)sharedMemoryDescriptor->memory_allocate(createInfo->arraySize * sizeof(AHardwareBuffer*));
     GLuint* textures = (GLuint*)sharedMemoryDescriptor->memory_allocate(createInfo->arraySize * sizeof(GLuint));
 
+    //debug
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Array size : %d", createInfo->arraySize);
+
     for(int i = 0; i < createInfo->arraySize; i++){
         AHardwareBuffer* hardwareBuffer;
         GLuint texture;
         intermediateGenerateSwapchainImage(createInfo, format, pixelStride, &hardwareBuffer, &texture);
 
+        //Debug try glclear
+        /*glBindTexture(GL_TEXTURE_2D, texture);
+        GLuint fbo;
+        glGenBuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+        glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        glBindTexture(GL_TEXTURE_2D, 0);*/
+
         hardwareBuffers[i] = hardwareBuffer;
         textures[i] = texture;
     }
 
+    //debug
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Hardware buffers and textures created!");
+
     XrSwapchainDescriptor* swapchainDescriptor = NEW_SHARED(XrSwapchainDescriptor, sharedMemoryDescriptor, (XrSessionDescriptor*)session, createInfo, hardwareBuffers, textures);
+
+    //debug
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Swapchain descriptor created!");
 
 
     //TELL THE SERVER THE SWAPCHAIN WHERE THE HARDWARE BUFFERS ARE
@@ -1010,12 +1078,17 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
 
     //Send the hardware buffers to the client
 
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Sending hardware buffers to client!");
+
     //SEND A BUFFER TO THE CLIENT TO SAY THAT WE ARE SENDING HARDWARE BUFFERS
     cts_instruction instruction = cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER;
     send(client_fd, &instruction, sizeof(cts_instruction), 0);
 
     for(int i = 0; i < createInfo->arraySize; i++) {
         //Ready to send an hardware buffer
+
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Waiting for client to be ready to receive AHardwareBuffer!");
+
         recv(client_fd, &instruction, sizeof(cts_instruction), 0);
         if (instruction != cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER_READY) {
             __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "Ping back error!");
@@ -1040,21 +1113,6 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
     //ADD THE SWAPCHAIN TO THE SESSION, USE THE SAME CODE STRUCTURE THAN XRCREATEACTIONSET, a linked list
     XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
 
-    if(sessionDescriptor->firstSwapchainDescriptor == nullptr){
-        sessionDescriptor->firstSwapchainDescriptor = swapchainDescriptor;
-        *swapchain = (XrSwapchain)swapchainDescriptor;
-
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateSwapchain done (1)!");
-        return XR_SUCCESS;
-    }
-
-
-    XrSwapchainDescriptor* lastSwapchainDescriptor = sessionDescriptor->firstSwapchainDescriptor;
-    while(lastSwapchainDescriptor->nextSwapchainDescriptor != nullptr){
-        lastSwapchainDescriptor = lastSwapchainDescriptor->nextSwapchainDescriptor;
-    }
-
-    lastSwapchainDescriptor->nextSwapchainDescriptor = swapchainDescriptor;
     *swapchain = (XrSwapchain)swapchainDescriptor;
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageCreateSwapchain done (2)!");
@@ -1067,6 +1125,46 @@ XrResult mirageDestroySwapchain(XrSwapchain swapchain){ __android_log_print(ANDR
 XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCapacityInput, uint32_t *imageCountOutput, XrSwapchainImageBaseHeader *images){
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages called!");
+
+    //DEBUG
+
+    rainbow_counter = 0;
+//    while(rainbow_counter < 10){
+//        GLuint texture = ((XrSwapchainDescriptor*)swapchain)->clientTextureIds[0];
+//        glBindTexture(GL_TEXTURE_2D, texture);
+//        GLuint fbo;
+//        glGenBuffers(1, &fbo);
+//        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+//        float r = ((float)(rainbow_counter % 8)) / 7.0f;
+//        float g = ((float)(rainbow_counter % 4)) / 3.0f;
+//        float b = ((float)(rainbow_counter % 2)) / 1.0f;
+//        glClearColor(r, g, b, 1.0f);
+//        rainbow_counter += 1;
+//        glClear(GL_COLOR_BUFFER_BIT);
+//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//        glDeleteFramebuffers(1, &fbo);
+//        glBindTexture(GL_TEXTURE_2D, 0);
+//
+//        glFinish();
+//
+//        sleep(1);
+//
+//
+//    }
+
+
+
+    /*texture = ((XrSwapchainDescriptor*)swapchain)->clientTextureIds[1];
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenBuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers(1, &fbo);
+    glBindTexture(GL_TEXTURE_2D, 0);*/
 
     XrSwapchainDescriptor* swapchainDescriptor = (XrSwapchainDescriptor*)swapchain;
 
@@ -1096,11 +1194,34 @@ XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCap
     return XR_SUCCESS;
 }
 
-XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo *acquireInfo, uint32_t *index){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+int currentIndex = 0;
+XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo *acquireInfo, uint32_t *index){
 
-XrResult mirageWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo *waitInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    //TODO
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
 
-XrResult mirageReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo *releaseInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+
+
+    *index = currentIndex;
+    currentIndex++;
+
+    return XR_SUCCESS;}
+
+XrResult mirageWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo *waitInfo){
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageReleaseInfo *releaseInfo){
+
+    //TODO
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+    currentIndex--;
+
+    return XR_SUCCESS;
+}
 
 
 //DEBUG EXT

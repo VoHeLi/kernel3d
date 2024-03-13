@@ -35,6 +35,8 @@ public:
     XrActionSpaceDescriptor* firstActionSpaceDescriptor;
     XrSwapchainDescriptor* firstSwapchainDescriptor;
     XrFrameState* waitFrameState;
+    XrView* views;
+    uint32_t viewCount;
 
 
     //TODO : Add Graphics Bindings support for server

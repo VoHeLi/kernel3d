@@ -41,7 +41,7 @@ void shared_memory_descriptor::memory_init_server() {
 void *shared_memory_descriptor::memory_allocate(size_t size) {
     //WE ALLOCATE ONE MORE BLOCK ONE THE LEFT, And WE RETURN THE NEXT POINTER, SO THAT WE HAVE THE SIZE TO FREE MEMORY
 
-    __android_log_print(ANDROID_LOG_DEBUG, "ALLOCATOR", "Allocating memory of size %zu.", size);
+    __android_log_print(ANDROID_LOG_DEBUG, "ALLOCATOR", "Allocating memory of size %zu., total free %ldl", size, available_blocks*8);
 
     size += 8;
 

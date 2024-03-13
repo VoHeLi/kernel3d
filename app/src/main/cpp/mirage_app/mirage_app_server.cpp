@@ -14,11 +14,13 @@ XrTime mirage_app_server::getCurrentTimeNanos(){
 
 mirage_app_server::mirage_app_server() {
     _isAccessible = false;
+    _isInitialized = false;
     _serverInitializationThread = std::thread(&mirage_app_server::initializeServerThread, this);
 }
 
 mirage_app_server::~mirage_app_server() {
     _isAccessible = false;
+    _isInitialized = false;
     _serverDestroyThread = std::thread(&mirage_app_server::destroyServerThread, this);
 }
 
@@ -62,6 +64,7 @@ void mirage_app_server::initializeServerThread() {
                 _lastUpdateTime = getCurrentTimeNanos();
                 _frameIndex = 0;
                 _isInitialized = true;
+                return;
                 break;
             default:
                 break;
@@ -70,6 +73,7 @@ void mirage_app_server::initializeServerThread() {
         //PING BACK
         send(_client_fd, &instruction, sizeof(cts_instruction), 0);
     }
+
 }
 
 void mirage_app_server::destroyServerThread() {
@@ -428,11 +432,11 @@ void mirage_app_server::updateBegin() {
     //We update the frame state
     frameState->predictedDisplayTime = currentTime + deltaTime;
     frameState->predictedDisplayPeriod = deltaTime;
-    frameState->shouldRender = _frameIndex > 3 ? XR_TRUE : XR_FALSE;
+    frameState->shouldRender = _frameIndex > 5 ? XR_TRUE : XR_FALSE;
 
     //Send event to instance
     _frameIndex++;
-    if(_frameIndex > 3)
+    if(_frameIndex == 3)
     {
         XrEventDataSessionStateChanged sessionStateChanged = {
             .type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED,
@@ -444,6 +448,43 @@ void mirage_app_server::updateBegin() {
 
         instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
     }
+    else if(_frameIndex == 5)
+    {
+        XrEventDataSessionStateChanged sessionStateChanged = {
+            .type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED,
+            .next = nullptr,
+            .session = (XrSession)STCM(sessionDescriptor, XrSessionDescriptor*),
+            .state = XR_SESSION_STATE_VISIBLE,
+            .time = currentTime,
+        };
+
+        instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
+    }
+
+    //DEBUG SET XRVIEW TO IDENTITY
+    sessionDescriptor->viewCount = 2;
+    XrView* views = CTSM(sessionDescriptor->views, XrView*);
+
+    if(views == CTSM(nullptr, void*)){
+        views = (XrView*)sharedMemoryDescriptor->memory_allocate(sizeof(XrView)*sessionDescriptor->viewCount);
+        sessionDescriptor->views = STCM(views, XrView*);
+    }
+
+
+    for(int i = 0; i < sessionDescriptor->viewCount; i++){
+        views[i].pose.orientation.w = 1;
+        views[i].pose.orientation.x = 0;
+        views[i].pose.orientation.y = 0;
+        views[i].pose.orientation.z = 0;
+        views[i].pose.position.x = -0.35+0.7*i;
+        views[i].pose.position.y = 0;
+        views[i].pose.position.z = 0;
+
+        views[i].fov.angleLeft = -0.78539816339; //PI/4
+        views[i].fov.angleRight = 0.78539816339; //PI/4
+        views[i].fov.angleUp = 0.78539816339; //PI/4
+        views[i].fov.angleDown = -0.78539816339;  //PI/4
+    }
 
     //We end the client xrWaitFrame()
     cts_instruction instruction = cts_instruction::WAIT_FRAME;
@@ -452,8 +493,44 @@ void mirage_app_server::updateBegin() {
 
 void mirage_app_server::updateEnd() {
     //We wait for the client to end xrWaitFrame()
-    cts_instruction instruction = cts_instruction::WAIT_FRAME;
+    cts_instruction instruction = cts_instruction::NONE;
     recv(_client_fd, &instruction, sizeof(cts_instruction), 0);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received Instruction : %lu", instruction);
+
+    //Try to receive additional messages without blocking
+//    while(recv(_client_fd, &instruction, sizeof(cts_instruction), MSG_DONTWAIT) > 0){
+//        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received Instruction : %lu", instruction);
+////
+////        switch (instruction) {
+////            case cts_instruction::WAIT_FRAME:
+////                //We do nothing
+////                break;
+////            case cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER:
+////                receiveHardwareBufferFromClient();
+////                send(_client_fd, &instruction, sizeof(cts_instruction), 0); // PING BACK
+////                break;
+////            default:
+////                __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Unknown instruction received : %d", instruction);
+////                break;
+////        }
+//    }
+
+
+
+    switch (instruction) {
+        case cts_instruction::WAIT_FRAME:
+            //We do nothing
+            break;
+        case cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER: //Was from a bug, should not be received here
+            receiveHardwareBufferFromClient();
+            send(_client_fd, &instruction, sizeof(cts_instruction), 0); // PING BACK
+            updateEnd(); //RECURSIVE CALL
+            break;
+        default:
+            __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Unknown instruction received : %d", instruction);
+            break;
+    }
 
 }
 

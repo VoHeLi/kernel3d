@@ -26,21 +26,28 @@ XrSwapchainDescriptor::XrSwapchainDescriptor(shared_memory_descriptor *sharedMem
 
     this->nextSwapchainDescriptor = nullptr;
 
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_SHARED", "Creating swapchain descriptor");
+
     if(sessionDescriptor->firstSwapchainDescriptor == nullptr){
         sessionDescriptor->firstSwapchainDescriptor = this;
     } else {
         XrSwapchainDescriptor* currentReferenceSpaceDescriptor = sessionDescriptor->firstSwapchainDescriptor;
         while(currentReferenceSpaceDescriptor->nextSwapchainDescriptor != nullptr){
             currentReferenceSpaceDescriptor = currentReferenceSpaceDescriptor->nextSwapchainDescriptor;
+
+            //DEBUG
+            __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_SHARED", "Waiting for swapchain descriptor %p, %p", currentReferenceSpaceDescriptor, currentReferenceSpaceDescriptor->nextSwapchainDescriptor);
+            //sleep(1);
         }
         currentReferenceSpaceDescriptor->nextSwapchainDescriptor = this;
     }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_SHARED", "Creating swapchain descriptor2");
 
     this->clientHardwareBuffers = clientHardwareBuffers;
     this->clientTextureIds = clientTextureIds;
     this->bufferCount = createInfo->arraySize;
 
-    this->nextSwapchainDescriptor = nullptr; //We handle this a little bit differently in the mirage_binder
 
 
     this->created = true;
