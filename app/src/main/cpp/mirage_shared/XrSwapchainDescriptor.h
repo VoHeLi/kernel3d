@@ -5,6 +5,8 @@
 
 #define XR_SWAPCHAIN_DESCRIPTOR_SIGNATURE 0xd76fb26340c246ee
 
+#define SWAPCHAIN_IMAGE_COUNT 3
+
 class XrSessionDescriptor;
 
 

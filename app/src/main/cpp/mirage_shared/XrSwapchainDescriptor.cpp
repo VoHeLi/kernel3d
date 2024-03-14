@@ -46,7 +46,7 @@ XrSwapchainDescriptor::XrSwapchainDescriptor(shared_memory_descriptor *sharedMem
 
     this->clientHardwareBuffers = clientHardwareBuffers;
     this->clientTextureIds = clientTextureIds;
-    this->bufferCount = createInfo->arraySize;
+    this->bufferCount = SWAPCHAIN_IMAGE_COUNT;
 
 
 

@@ -11,6 +11,8 @@
 #include <map>
 #include <android/hardware_buffer.h>
 
+#define DEBUG_TEXTURE_TYPE GL_TEXTURE_2D_ARRAY
+
 class GraphicsBackendManager {
 public:
     GraphicsBackendManager(ANativeWindow* nativeWindow);

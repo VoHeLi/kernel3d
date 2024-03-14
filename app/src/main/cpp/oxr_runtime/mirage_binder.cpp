@@ -531,12 +531,13 @@ XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
     XrSwapchainDescriptor* swapchain = (XrSwapchainDescriptor*)sessionDescriptor->firstSwapchainDescriptor;
 
     /*GLuint texture = ((XrSwapchainDescriptor*)swapchain)->clientTextureIds[0];
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
     GLuint fbo;
     glGenBuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);*/
-    /*float r = ((float)(rainbow_counter % 800)) / 799.0f;
+    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, texture, 0);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 0);
+    float r = ((float)(rainbow_counter % 800)) / 799.0f;
     float g = ((float)(rainbow_counter % 400)) / 399.0f;
     float b = ((float)(rainbow_counter % 200)) / 199.0f;
     glClearColor(r, g, b, 1.0f);
@@ -544,7 +545,7 @@ XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
     glClear(GL_COLOR_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDeleteFramebuffers(1, &fbo);
-    glBindTexture(GL_TEXTURE_2D, 0);*/
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);*/
 
     glFinish();
 
@@ -931,6 +932,7 @@ XrResult mirageEnumerateSwapchainFormats(XrSession session, uint32_t formatCapac
     *formatCountOutput = sessionDescriptor->swapchainFormatsCount;
 
     //LOG THE OUTPUT FORMATS
+
 //    for(int i = 0; i < *formatCountOutput; i++){
 //        __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "SwapchainFormat : %d", formats[i]);
 //    }
@@ -976,7 +978,7 @@ void intermediateGenerateSwapchainImage(const XrSwapchainCreateInfo *createInfo,
     bufferDesc.width = createInfo->width;
     bufferDesc.height = createInfo->height;
     bufferDesc.format = format;
-    bufferDesc.layers = 1;
+    bufferDesc.layers = 2;//createInfo->arraySize;
     bufferDesc.usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER; //Color + Depth + Stencil
     bufferDesc.stride = createInfo->width * pixelStride;
     bufferDesc.rfu0 = 0;
@@ -992,19 +994,21 @@ void intermediateGenerateSwapchainImage(const XrSwapchainCreateInfo *createInfo,
 
     //Create OpenGL ES Texture and link it to the hardware buffer
     glGenTextures(1, texture);
-    glBindTexture(GL_TEXTURE_2D, *texture);
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImageKHR);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, *texture);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D_ARRAY, (GLeglImageOES)eglImageKHR);
 
     //Optional parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    //TODO : REMOVE THIS DEBUG ----------------------------------------------------------------------------------------------
-    std::vector<unsigned char> gradientData = generateGradient(createInfo->width, createInfo->height); //DEBUG
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, createInfo->width, createInfo->height, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
-    //TODO : ----------------------------------------------------------------------------------------------------------------
+//    //TODO : REMOVE THIS DEBUG ----------------------------------------------------------------------------------------------
+//    std::vector<unsigned char> gradientData = generateGradient(createInfo->width, createInfo->height); //DEBUG
+//    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, createInfo->width, createInfo->height, GL_RGBA, GL_UNSIGNED_BYTE, gradientData.data());
+//    //TODO : ----------------------------------------------------------------------------------------------------------------
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    glFinish();
 }
 
 XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *createInfo, XrSwapchain *swapchain){
@@ -1012,6 +1016,8 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
     //TODO : Implement this
     //TODO : Support CUBEMAPS
     //TODO : LINK TO THE SESSION OPENGL ES CONTEXT (It should be ok in this part of the code however)
+
+
 
     //Print createInfo data
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "MirageCreateSwapchain called!");
@@ -1048,14 +1054,16 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
         return XR_ERROR_SWAPCHAIN_FORMAT_UNSUPPORTED;
     }
 
+
     //IT IS NOT MANDATORY TO ALLOCATE THEM IN SHARED MEMORY
-    AHardwareBuffer** hardwareBuffers = (AHardwareBuffer**)sharedMemoryDescriptor->memory_allocate(createInfo->arraySize * sizeof(AHardwareBuffer*));
-    GLuint* textures = (GLuint*)sharedMemoryDescriptor->memory_allocate(createInfo->arraySize * sizeof(GLuint));
+    AHardwareBuffer** hardwareBuffers = (AHardwareBuffer**)sharedMemoryDescriptor->memory_allocate(SWAPCHAIN_IMAGE_COUNT * sizeof(AHardwareBuffer*));
+    GLuint* textures = (GLuint*)sharedMemoryDescriptor->memory_allocate(SWAPCHAIN_IMAGE_COUNT * sizeof(GLuint));
 
     //debug
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Array size : %d", createInfo->arraySize);
 
-    for(int i = 0; i < createInfo->arraySize; i++){
+    //CREATING 3 TEXTURES FOR THE SWAPCHAIN
+    for(int i = 0; i < SWAPCHAIN_IMAGE_COUNT; i++){
         AHardwareBuffer* hardwareBuffer;
         GLuint texture;
         intermediateGenerateSwapchainImage(createInfo, format, pixelStride, &hardwareBuffer, &texture);
@@ -1101,7 +1109,7 @@ XrResult mirageCreateSwapchain(XrSession session, const XrSwapchainCreateInfo *c
     cts_instruction instruction = cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER;
     send(client_fd, &instruction, sizeof(cts_instruction), 0);
 
-    for(int i = 0; i < createInfo->arraySize; i++) {
+    for(int i = 0; i < SWAPCHAIN_IMAGE_COUNT; i++) {
         //Ready to send an hardware buffer
 
         __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Waiting for client to be ready to receive AHardwareBuffer!");
@@ -1186,25 +1194,25 @@ XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCap
     XrSwapchainDescriptor* swapchainDescriptor = (XrSwapchainDescriptor*)swapchain;
 
     if(imageCapacityInput == 0 || images == nullptr){
-        *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
+        *imageCountOutput = swapchainDescriptor->bufferCount;
         __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages Giving size!");
         return XR_SUCCESS;
     }
 
-    if(imageCapacityInput < swapchainDescriptor->createInfo->arraySize){
-        *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
+    if(imageCapacityInput < swapchainDescriptor->bufferCount){
+        *imageCountOutput = swapchainDescriptor->bufferCount;
         __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages Size error!");
         return XR_ERROR_SIZE_INSUFFICIENT;
     }
 
-    for(int i = 0; i < swapchainDescriptor->createInfo->arraySize; i++){
+    for(int i = 0; i < swapchainDescriptor->bufferCount; i++){
         XrSwapchainImageOpenGLESKHR* image = &(((XrSwapchainImageOpenGLESKHR*)images)[i]);
         image->type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
         image->next = nullptr;
         image->image = swapchainDescriptor->clientTextureIds[i];
     }
 
-    *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
+    *imageCountOutput = swapchainDescriptor->bufferCount;
 
     //LOG DATA
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Should be %d images.", *imageCountOutput);
@@ -1230,7 +1238,7 @@ XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainIma
 
 
     *index = currentIndex;
-    currentIndex = (currentIndex + 1) % swapchainDescriptor->createInfo->arraySize;
+    currentIndex = (currentIndex + 1) % swapchainDescriptor->bufferCount;
 
     return XR_SUCCESS;}
 

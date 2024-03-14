@@ -238,7 +238,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
         glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*so->getTransformationMatrix()));
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_EXTERNAL_OES, so->_textureId);
+        glBindTexture(DEBUG_TEXTURE_TYPE, so->_textureId);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         glDisableVertexAttribArray(0);
@@ -304,9 +304,11 @@ static const char* FragmentShaderGlsl = R"_(#version 320 es
 
 // Vertex shader source code
 const char* vertexShaderSource =
+        "#version 300 es\n"
         "#extension GL_OES_EGL_image_external : enable\n"
-        "attribute vec4 position;\n"
-        "varying vec2 textureCoords;\n"
+        "#extension GL_OES_texture_3D : enable\n"
+        "in vec4 position;\n"
+        "out vec2 textureCoords;\n"
         "uniform mat4 finalMatrix;\n"
         "void main() {\n"
         "  gl_Position = finalMatrix*position;"
@@ -315,13 +317,17 @@ const char* vertexShaderSource =
 
 // Fragment shader source code
 const char* fragmentShaderSource =
+        "#version 300 es\n"
         "#extension GL_OES_EGL_image_external : enable\n"
+        "#extension GL_OES_texture_3D : enable\n"
         "precision mediump float;\n"
-        "uniform samplerExternalOES textureSampler;\n"
-        "varying vec2 textureCoords;\n"
+        "uniform sampler2DArray textureSampler;\n" //Change between this and external samplerExternalOES, sampler2D
+        "in vec2 textureCoords;\n"
+        "out vec4 fragColor;\n"
         "void main() {\n"
-        "  gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
-        "  gl_FragColor = texture2D(textureSampler, textureCoords);\n"
+        "  fragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
+        "  fragColor = texture(textureSampler, vec3(textureCoords, 0));\n"
+        //"  gl_FragColor = texture2DArray(textureSampler, textureCoords);\n"
         "}\0";
 
 GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
@@ -355,18 +361,19 @@ GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
 GLuint GraphicsBackendManager::createDisplayTexture(){
     GLuint textureID;
     glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureID);
-    //glTexImage2D(GL_TEXTURE_EXTERNAL_OES, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(DEBUG_TEXTURE_TYPE, textureID);
+    //glTexImage2D(DEBUG_TEXTURE_TYPE, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameterf(DEBUG_TEXTURE_TYPE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(DEBUG_TEXTURE_TYPE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(DEBUG_TEXTURE_TYPE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(DEBUG_TEXTURE_TYPE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     return textureID;
 }
 
 void GraphicsBackendManager::InitializeResources() {
     glEnable(GL_OES_EGL_image_external);
+    glEnable(GL_OES_texture_3D);
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -515,10 +522,10 @@ int GraphicsBackendManager::GetDisplayTexture(int id) {
         EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(debugHardwareBuffer);
 
         EGLImageKHR eglImageKHR = eglCreateImageKHR(eglGetCurrentDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglClientBuffer, nullptr);
-        glBindTexture(GL_TEXTURE_EXTERNAL_OES, _texture1);
-        glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, eglImageKHR);
+        glBindTexture(DEBUG_TEXTURE_TYPE, _texture1);
+        glEGLImageTargetTexture2DOES(DEBUG_TEXTURE_TYPE, eglImageKHR);
 
-        glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+        glBindTexture(DEBUG_TEXTURE_TYPE, 0);
         __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Display linked with hardwarebuffer : %p", debugHardwareBuffer);
         debugHardwareBufferInited = true;
     }
