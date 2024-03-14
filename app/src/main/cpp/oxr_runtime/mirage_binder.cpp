@@ -314,6 +314,7 @@ XrResult mirageEnumerateViewConfigurations( XrSystemId systemId, uint32_t viewCo
 
     for(int i = 0; i < systemIdDescriptor->viewConfigurationsCount; i++){
         viewConfigurationTypes[i] = systemIdDescriptor->viewConfigurations[i];
+        __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ViewConfig enum : %d", viewConfigurationTypes[i]);
     }
 
     *viewConfigurationTypeCountOutput = systemIdDescriptor->viewConfigurationsCount;
@@ -328,6 +329,8 @@ XrResult mirageGetViewConfigurationProperties(XrSystemId systemId, XrViewConfigu
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageGetViewConfigurationProperties called!");
 
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ViewConfigProperties : %d", viewConfigurationType);
+
     XrSystemIdDescriptor* systemIdDescriptor = (XrSystemIdDescriptor*) systemId;
 
     if(viewConfigurationType != systemIdDescriptor->viewConfigurations[0]){ //TODO : Support more than one view configuration
@@ -336,6 +339,9 @@ XrResult mirageGetViewConfigurationProperties(XrSystemId systemId, XrViewConfigu
     }
 
     *configurationProperties = *systemIdDescriptor->viewConfigurationProperties;
+
+    //PRINT CONFIGURATION PROPERTIES
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Type : %d, Next : %p, ViewConfigType : %d, fovmut : %d", systemIdDescriptor->viewConfigurationProperties->type, systemIdDescriptor->viewConfigurationProperties->next, systemIdDescriptor->viewConfigurationProperties->viewConfigurationType, systemIdDescriptor->viewConfigurationProperties->fovMutable);
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageGetViewConfigurationProperties done!");
 
@@ -372,6 +378,12 @@ XrResult mirageEnumerateViewConfigurationViews(XrSystemId systemId, XrViewConfig
     }
 
     *viewCountOutput = systemIdDescriptor->viewsCount;
+
+    //Log the views
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ViewConfigViews count: %d", *viewCountOutput);
+    for(int i = 0; i < *viewCountOutput; i++){
+        __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ViewConfigViews : %d, %u, %u, %u, %u, %u, %u, %u, %u, %u", views[i].type, views[i].recommendedImageRectWidth, views[i].recommendedImageRectHeight, views[i].maxImageRectWidth, views[i].maxImageRectHeight, views[i].recommendedSwapchainSampleCount, views[i].maxSwapchainSampleCount, views[i].recommendedImageRectWidth, views[i].recommendedImageRectHeight, views[i].maxImageRectWidth, views[i].maxImageRectHeight);
+    }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateViewConfigurationViews done!");
 
@@ -504,6 +516,7 @@ XrResult mirageBeginFrame(XrSession session, const XrFrameBeginInfo *frameBeginI
 
     //TODO : Implement this later
 
+
     return XR_SUCCESS;
 
 }
@@ -517,13 +530,13 @@ XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
     XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
     XrSwapchainDescriptor* swapchain = (XrSwapchainDescriptor*)sessionDescriptor->firstSwapchainDescriptor;
 
-    GLuint texture = ((XrSwapchainDescriptor*)swapchain)->clientTextureIds[0];
+    /*GLuint texture = ((XrSwapchainDescriptor*)swapchain)->clientTextureIds[0];
     glBindTexture(GL_TEXTURE_2D, texture);
     GLuint fbo;
     glGenBuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-    float r = ((float)(rainbow_counter % 800)) / 799.0f;
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);*/
+    /*float r = ((float)(rainbow_counter % 800)) / 799.0f;
     float g = ((float)(rainbow_counter % 400)) / 399.0f;
     float b = ((float)(rainbow_counter % 200)) / 199.0f;
     glClearColor(r, g, b, 1.0f);
@@ -531,7 +544,7 @@ XrResult mirageEndFrame(XrSession session, const XrFrameEndInfo *frameEndInfo){
     glClear(GL_COLOR_BUFFER_BIT);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDeleteFramebuffers(1, &fbo);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);*/
 
     glFinish();
 
@@ -543,12 +556,11 @@ XrResult mirageRequestExitSession(XrSession session){ __android_log_print(ANDROI
 XrResult mirageLocateViews(XrSession session, const XrViewLocateInfo *viewLocateInfo, XrViewState *viewState, uint32_t viewCapacityInput, uint32_t *viewCountOutput, XrView *views){
 
     //TODO USE viewLocateInfo data for better view location
-    __android_log_print(ANDROID_LOG_WARN, "PICOREUR2", "Unimplemented");
+    __android_log_print(ANDROID_LOG_WARN, "PICOREUR2", "mirageLocateViews : %d, requestedInput : %d", viewLocateInfo->viewConfigurationType, viewCapacityInput);
 
     viewState->type = XR_TYPE_VIEW_STATE;
     viewState->next = nullptr;
-    viewState->viewStateFlags = XR_VIEW_STATE_ORIENTATION_VALID_BIT | XR_VIEW_STATE_POSITION_VALID_BIT |
-                                XR_VIEW_STATE_ORIENTATION_TRACKED_BIT | XR_VIEW_STATE_POSITION_TRACKED_BIT;
+
 
     //You do the same than enumerate
     XrSessionDescriptor* sessionDescriptor = (XrSessionDescriptor*)session;
@@ -559,17 +571,22 @@ XrResult mirageLocateViews(XrSession session, const XrViewLocateInfo *viewLocate
         return XR_SUCCESS;
     }
 
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ViewLocate : View count : %d, view capacity : %d", sessionDescriptor->viewCount, viewCapacityInput);
+
     if(viewCapacityInput < sessionDescriptor->viewCount){
         *viewCountOutput = sessionDescriptor->viewCount;
-        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "ViewLocate : Size error!");
+        __android_log_print(ANDROID_LOG_ERROR, "MIRAGE_BINDER", "ViewLocate : size incorrect!");
         return XR_ERROR_SIZE_INSUFFICIENT;
     }
 
-    for(int i = 0; i < sessionDescriptor->viewCount; i++){
+    for(int i = 0; i < viewCapacityInput; i++){
         views[i] = sessionDescriptor->views[i];
     }
 
     *viewCountOutput = sessionDescriptor->viewCount;
+
+    viewState->viewStateFlags = XR_VIEW_STATE_ORIENTATION_VALID_BIT | XR_VIEW_STATE_POSITION_VALID_BIT |
+                                XR_VIEW_STATE_ORIENTATION_TRACKED_BIT | XR_VIEW_STATE_POSITION_TRACKED_BIT;
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageLocateViews done!");
 
@@ -1189,6 +1206,12 @@ XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCap
 
     *imageCountOutput = swapchainDescriptor->createInfo->arraySize;
 
+    //LOG DATA
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER PICOREUR", "Should be %d images.", *imageCountOutput);
+    for(int i = 0; i < *imageCountOutput; i++){
+        __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "SwapchainImaged : %d", ((XrSwapchainImageOpenGLESKHR*)images)[i].image);
+    }
+
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "MirageEnumerateSwapchainImages done!");
 
     return XR_SUCCESS;
@@ -1200,10 +1223,14 @@ XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainIma
     //TODO
     __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
 
+    XrSwapchainDescriptor* swapchainDescriptor = (XrSwapchainDescriptor*)swapchain;
+
+    __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "SwapchainImaged : Acquiring image %d", swapchainDescriptor->clientTextureIds[currentIndex]);
+
 
 
     *index = currentIndex;
-    currentIndex++;
+    currentIndex = (currentIndex + 1) % swapchainDescriptor->createInfo->arraySize;
 
     return XR_SUCCESS;}
 
@@ -1218,7 +1245,7 @@ XrResult mirageReleaseSwapchainImage(XrSwapchain swapchain, const XrSwapchainIma
     //TODO
     __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
 
-    currentIndex--;
+    //currentIndex--;
 
     return XR_SUCCESS;
 }

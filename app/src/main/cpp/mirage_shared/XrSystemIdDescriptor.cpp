@@ -57,11 +57,11 @@ XrSystemIdDescriptor::XrSystemIdDescriptor(shared_memory_descriptor *sharedMemor
     this->viewsCount = viewsCount;
 
     //--------------------------------------------------------------------------------
-    XrViewConfigurationProperties* vcp = NEW_SHARED(XrViewConfigurationProperties);
-    viewConfigurationProperties->type = XR_TYPE_VIEW_CONFIGURATION_PROPERTIES;
-    viewConfigurationProperties->next = nullptr;
-    viewConfigurationProperties->viewConfigurationType = viewConfigurationProperties->viewConfigurationType;
-    viewConfigurationProperties->fovMutable = viewConfigurationProperties->fovMutable;
+    XrViewConfigurationProperties* vcp = NEW_SHARED(XrViewConfigurationProperties); //WHY *** I DID THIS MISTAKE, KILL ME, LOOK AT THE DIFF WITH THE PREVIOUS COMMIT!!!
+    vcp->type = XR_TYPE_VIEW_CONFIGURATION_PROPERTIES;
+    vcp->next = nullptr;
+    vcp->viewConfigurationType = viewConfigurationProperties->viewConfigurationType;
+    vcp->fovMutable = viewConfigurationProperties->fovMutable;
 
     this->viewConfigurationProperties = STCM(vcp, XrViewConfigurationProperties*);
 

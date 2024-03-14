@@ -197,15 +197,27 @@ void mirage_app_server::populateSystemProperties() {
 
     //Fill views
     //Lynx values
-    XrViewConfigurationView viewConfigurationView = {
-        .type = XR_TYPE_VIEW_CONFIGURATION_VIEW,
-        .next = nullptr,
-        .recommendedImageRectWidth = 1600,
-        .maxImageRectWidth = 1600,
-        .recommendedImageRectHeight = 1600,
-        .maxImageRectHeight = 1600,
-        .recommendedSwapchainSampleCount = 1,
-        .maxSwapchainSampleCount = 1,
+    XrViewConfigurationView viewConfigurationViews[2] = {
+    {
+            .type = XR_TYPE_VIEW_CONFIGURATION_VIEW,
+            .next = nullptr,
+            .recommendedImageRectWidth = 1600,
+            .maxImageRectWidth = 1600,
+            .recommendedImageRectHeight = 1600,
+            .maxImageRectHeight = 1600,
+            .recommendedSwapchainSampleCount = 1,
+            .maxSwapchainSampleCount = 1,
+        },
+    {
+            .type = XR_TYPE_VIEW_CONFIGURATION_VIEW,
+            .next = nullptr,
+            .recommendedImageRectWidth = 1600,
+            .maxImageRectWidth = 1600,
+            .recommendedImageRectHeight = 1600,
+            .maxImageRectHeight = 1600,
+            .recommendedSwapchainSampleCount = 1,
+            .maxSwapchainSampleCount = 1,
+        }
     };
 
     XrViewConfigurationProperties viewConfigurationProperties = {
@@ -222,7 +234,7 @@ void mirage_app_server::populateSystemProperties() {
 
     NEW_SHARED(XrSystemIdDescriptor, sharedMemoryDescriptor, CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*),
                &systemProperties, &graphicsRequirementsOpenGLESKHR, &viewConfigurationType, 1,
-               &viewConfigurationView, 1, &viewConfigurationProperties,
+               viewConfigurationViews, 2, &viewConfigurationProperties, //2 here means 2 views!!!
                environmentBlendModes, 2);
 
 
@@ -476,7 +488,7 @@ void mirage_app_server::updateBegin() {
         views[i].pose.orientation.x = 0;
         views[i].pose.orientation.y = 0;
         views[i].pose.orientation.z = 0;
-        views[i].pose.position.x = -0.35+0.7*i;
+        views[i].pose.position.x = 0;
         views[i].pose.position.y = 0;
         views[i].pose.position.z = 0;
 
@@ -498,23 +510,23 @@ void mirage_app_server::updateEnd() {
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received Instruction : %lu", instruction);
 
-    //Try to receive additional messages without blocking
-//    while(recv(_client_fd, &instruction, sizeof(cts_instruction), MSG_DONTWAIT) > 0){
-//        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received Instruction : %lu", instruction);
-////
-////        switch (instruction) {
-////            case cts_instruction::WAIT_FRAME:
-////                //We do nothing
-////                break;
-////            case cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER:
-////                receiveHardwareBufferFromClient();
-////                send(_client_fd, &instruction, sizeof(cts_instruction), 0); // PING BACK
-////                break;
-////            default:
-////                __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Unknown instruction received : %d", instruction);
-////                break;
-////        }
-//    }
+    //Try to receive additional messages without blocking TODO : BETTER WAY TO DO THIS
+    while(recv(_client_fd, &instruction, sizeof(cts_instruction), MSG_DONTWAIT) > 0){
+        __android_log_print(ANDROID_LOG_WARN, "MIRAGE", "Received Instruction EXTRA : %lu", instruction);
+//
+//        switch (instruction) {
+//            case cts_instruction::WAIT_FRAME:
+//                //We do nothing
+//                break;
+//            case cts_instruction::SHARE_SWAPCHAIN_AHARDWAREBUFFER:
+//                receiveHardwareBufferFromClient();
+//                send(_client_fd, &instruction, sizeof(cts_instruction), 0); // PING BACK
+//                break;
+//            default:
+//                __android_log_print(ANDROID_LOG_ERROR, "MIRAGE", "Unknown instruction received : %d", instruction);
+//                break;
+//        }
+    }
 
 
 
