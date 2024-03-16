@@ -414,6 +414,24 @@ void OpenXRPlugin::PrepareRendering(){
     updateHandJoints(_currentTime, _appSpace, XR_HAND_RIGHT_EXT);
 
     _frameState = frameState;
+
+
+    //Locate views of this frame
+    XrResult res;
+
+    XrViewState viewState{XR_TYPE_VIEW_STATE};
+    uint32_t viewCapacityInput = (uint32_t)_views.size();
+    uint32_t viewCountOutput;
+
+    XrViewLocateInfo viewLocateInfo{XR_TYPE_VIEW_LOCATE_INFO};
+    viewLocateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    viewLocateInfo.displayTime = _frameState.predictedDisplayTime;
+    viewLocateInfo.space = _appSpace; //TODO app space _appSpace
+
+    res = xrLocateViews(_session, &viewLocateInfo, &viewState, viewCapacityInput, &viewCountOutput, _views.data());
+    if(res< XR_SUCCESS){
+        __android_log_print(ANDROID_LOG_ERROR, "Androx Kernel3D","xrLocateViews : %d", res);
+    }
 }
 
 void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayers) {
