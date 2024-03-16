@@ -16,6 +16,7 @@ mirage_app_server::mirage_app_server() {
     _isAccessible = false;
     _isInitialized = false;
     _serverInitializationThread = std::thread(&mirage_app_server::initializeServerThread, this);
+    _appLayer = nullptr;
 }
 
 mirage_app_server::~mirage_app_server() {
@@ -337,13 +338,29 @@ void mirage_app_server::receiveHardwareBufferFromClient() {
 
     swapchainDescriptor->serverHardwareBuffers = hardwareBuffers;
 
-    //clear temp swapchain descriptor
-    instanceDescriptor->tempSwapchainDescriptor = nullptr; //VERY IMPORTANT
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Test");
 
     //TODO LINK TO GL TEXTURE
+    int textureType = CTSM(swapchainDescriptor->createInfo, XrSwapchainCreateInfo*)->arraySize > 1 ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Test2");
+
+    if(_appLayer == nullptr){
+        _appLayer = new XrAppLayer(1600, 1600, hardwareBuffers[0], hardwareBuffers[1], hardwareBuffers[2], textureType, count, CTSM(swapchainDescriptor->currentSwapchainIndexHandle, uint32_t*));
+
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Test3");
 
     debugHardwareBuffer = hardwareBuffers[0]; //DEBUG
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Test4");
     //__android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Received hardware buffer : %p", hardwareBuffers[0]);
+
+    //clear temp swapchain descriptor
+    instanceDescriptor->tempSwapchainDescriptor = nullptr; //VERY IMPORTANT
 }
 
 
@@ -430,7 +447,7 @@ void mirage_app_server::debugLog() {
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Reference space info : %f", CTSM(referenceSpaceDescriptor->createInfo, XrReferenceSpaceCreateInfo*)->poseInReferenceSpace.orientation.w);
 }
 
-void mirage_app_server::updateBegin() {
+void mirage_app_server::updateBegin(XrView* backviews) {
     //We do the approximation of the time, TODO : USE THE REAL TIME FOR MORE ACCURACY
     XrTime currentTime = getCurrentTimeNanos();
     XrDuration deltaTime = currentTime - _lastUpdateTime;
@@ -484,7 +501,7 @@ void mirage_app_server::updateBegin() {
 
 
     for(int i = 0; i < sessionDescriptor->viewCount; i++){
-        views[i].pose.orientation.w = 1;
+        /*views[i].pose.orientation.w = 1;
         views[i].pose.orientation.x = 0;
         views[i].pose.orientation.y = 0;
         views[i].pose.orientation.z = 0;
@@ -495,7 +512,9 @@ void mirage_app_server::updateBegin() {
         views[i].fov.angleLeft = -0.78539816339; //PI/4
         views[i].fov.angleRight = 0.78539816339; //PI/4
         views[i].fov.angleUp = 0.78539816339; //PI/4
-        views[i].fov.angleDown = -0.78539816339;  //PI/4
+        views[i].fov.angleDown = -0.78539816339;  //PI/4*/
+
+        views[i] = backviews[i];
     }
 
     //We end the client xrWaitFrame()

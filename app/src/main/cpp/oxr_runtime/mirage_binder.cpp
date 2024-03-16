@@ -1225,7 +1225,6 @@ XrResult mirageEnumerateSwapchainImages(XrSwapchain swapchain, uint32_t imageCap
     return XR_SUCCESS;
 }
 
-int currentIndex = 0;
 XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageAcquireInfo *acquireInfo, uint32_t *index){
 
     //TODO
@@ -1233,14 +1232,15 @@ XrResult mirageAcquireSwapchainImage(XrSwapchain swapchain, const XrSwapchainIma
 
     XrSwapchainDescriptor* swapchainDescriptor = (XrSwapchainDescriptor*)swapchain;
 
-    __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "SwapchainImaged : Acquiring image %d", swapchainDescriptor->clientTextureIds[currentIndex]);
+    __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER PICOREUR", "SwapchainImaged : Acquiring image %d", swapchainDescriptor->clientTextureIds[*swapchainDescriptor->currentSwapchainIndexHandle]);
 
 
 
-    *index = currentIndex;
-    currentIndex = (currentIndex + 1) % swapchainDescriptor->bufferCount;
+    *index = *swapchainDescriptor->currentSwapchainIndexHandle;
+    *swapchainDescriptor->currentSwapchainIndexHandle = (*swapchainDescriptor->currentSwapchainIndexHandle + 1) % swapchainDescriptor->bufferCount;
 
-    return XR_SUCCESS;}
+    return XR_SUCCESS;
+}
 
 XrResult mirageWaitSwapchainImage(XrSwapchain swapchain, const XrSwapchainImageWaitInfo *waitInfo){
     __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");

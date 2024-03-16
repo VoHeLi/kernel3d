@@ -1,5 +1,7 @@
 #pragma once
 
+#include <GLES2/gl2ext.h>
+#include <EGL/eglext.h>
 #include "../openxr/openxr_platform_defines.h"
 
 extern "C"{

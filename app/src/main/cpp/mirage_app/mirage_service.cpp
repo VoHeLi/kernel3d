@@ -41,7 +41,7 @@ Java_com_androx_kernel3d_Kernel3DLauncher_mirageInit(JNIEnv *env, jclass clazz) 
 
 
 JNIEXPORT void JNICALL
-engineUpdateTest() {
+engineUpdateTest(std::vector<XrAppLayer*>* appLayers, XrView* views) {
 
 //    for(int i = 0; i < servers.size(); i++){
 //        servers[i]->debugLog();
@@ -58,7 +58,7 @@ engineUpdateTest() {
 
     for(int i = 0; i < servers.size(); i++){
         if (running[i]) {
-            servers[i]->updateBegin();
+            servers[i]->updateBegin(views);
         }
     }
 
@@ -67,4 +67,18 @@ engineUpdateTest() {
             servers[i]->updateEnd();
         }
     }
+
+    free(running);
+
+    if(appLayers == nullptr){
+        appLayers = new std::vector<XrAppLayer*>();
+    }
+
+    *appLayers = std::vector<XrAppLayer*>();
+    for(int i = 0; i < servers.size(); i++){
+        if(servers[i]->_appLayer != nullptr)
+            (*appLayers).push_back(servers[i]->_appLayer);
+    }
+
+
 }

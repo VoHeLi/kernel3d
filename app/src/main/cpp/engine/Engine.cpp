@@ -17,6 +17,7 @@
 #include "SpatialObject.h"
 
 #include "mirage_app/mirage_service.h"
+#include "XrAppLayer.h"
 
 Engine::Engine(JNIEnv* jniEnv, jobject activity){
     _jniActivityEnv = jniEnv;
@@ -118,6 +119,9 @@ void Engine::engineMain() {
 
     /*intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
     intentTest(graphicsBackendManager->GetDisplayTexture(3), 3);*/
+
+
+    std::vector<XrAppLayer*> appLayers;
     while (!_destroyed) {
         // Read all pending events.
         /*for (;;) {
@@ -163,8 +167,10 @@ void Engine::engineMain() {
 
         graphicsBackendManager->GetDisplayTexture(1); //Just to trigger the hardware buffer
 
+
+
         //DEBUG
-        engineUpdateTest();
+        engineUpdateTest(&appLayers, openXrPlugin->_views.data());
 
         //Hand tracking test TODO REMOVE
         XrPosef indexTipPose;
@@ -193,7 +199,7 @@ void Engine::engineMain() {
 
         updateSurfaceTexture(!pinching, cx, cy);
 
-        openXrPlugin->RenderFrame(spatialObjects);
+        openXrPlugin->RenderFrame(spatialObjects, appLayers);
     }
 
     for(SpatialObject* so : spatialObjects){

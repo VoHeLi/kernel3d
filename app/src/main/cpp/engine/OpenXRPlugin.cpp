@@ -416,7 +416,7 @@ void OpenXRPlugin::PrepareRendering(){
     _frameState = frameState;
 }
 
-void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos) {
+void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayers) {
 
 
     XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
@@ -429,7 +429,7 @@ void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos) {
     XrCompositionLayerProjection layer{XR_TYPE_COMPOSITION_LAYER_PROJECTION};
     std::vector<XrCompositionLayerProjectionView> projectionLayerViews;
     if (_frameState.shouldRender == XR_TRUE) {
-        if (RenderLayer(_frameState.predictedDisplayTime, projectionLayerViews, layer, sos)) {
+        if (RenderLayer(_frameState.predictedDisplayTime, projectionLayerViews, layer, sos, appLayers)) {
             layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&layer));
         }
     }
@@ -446,7 +446,7 @@ void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos) {
 }
 
 bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompositionLayerProjectionView>& projectionLayerViews,
-                 XrCompositionLayerProjection& layer, std::vector<SpatialObject*> sos) {
+                 XrCompositionLayerProjection& layer, std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayers) {
     XrResult res;
 
     XrViewState viewState{XR_TYPE_VIEW_STATE};
@@ -507,7 +507,7 @@ bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompos
         projectionLayerViews[i].subImage.imageRect.extent = {viewSwapchain.width, viewSwapchain.height};
 
         const XrSwapchainImageBaseHeader* const swapchainImage = _swapchainImages[viewSwapchain.handle][swapchainImageIndex];
-        _graphicsBackendManager->RenderView(projectionLayerViews[i], swapchainImage, _colorSwapchainFormat, sos);
+        _graphicsBackendManager->RenderView(projectionLayerViews[i], swapchainImage, _colorSwapchainFormat, sos, appLayers, i);
 
         XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
         res = xrReleaseSwapchainImage(viewSwapchain.handle, &releaseInfo);

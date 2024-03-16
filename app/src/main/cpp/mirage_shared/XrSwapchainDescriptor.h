@@ -25,4 +25,5 @@ public:
     GLuint* clientTextureIds;
     GLuint* serverTextureIds; //THE ADDRESS IS DIRECTLY STORED IN THE SERVER VIRTUAL SPACE MEMORY
     uint32_t bufferCount;
+    uint32_t* currentSwapchainIndexHandle;
 };

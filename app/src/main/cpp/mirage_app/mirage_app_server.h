@@ -24,6 +24,7 @@
 
 #include "mirage_shared/shared_memory_descriptor.h"
 #include "engine/OpenXRPlugin.h"
+#include "engine/XrAppLayer.h"
 
 #define SOCKET_PATH "\0mirage_service_listener" //TODO : Change this to a more unique name per app
 #define STC_MEMORY_SIZE 1048576
@@ -42,11 +43,12 @@ public:
 
     void debugLog();
 
-    void updateBegin();
+    void updateBegin(XrView* views);
 
     void updateEnd();
 
     bool _isInitialized;
+    XrAppLayer* _appLayer;
 private:
     shared_memory_descriptor* sharedMemoryDescriptor;
     int _sharedMemoryFD;
@@ -57,6 +59,7 @@ private:
     std::thread _serverDestroyThread;
     XrTime _lastUpdateTime;
     uint64_t _frameIndex;
+
     //TODO : add frame_counter;
 
     XrTime getCurrentTimeNanos();

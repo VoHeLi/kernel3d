@@ -3,6 +3,7 @@
 #include "../openxr/openxr.h"
 #include "../openxr/openxr_platform.h"
 #include "SpatialObject.h"
+#include "XrAppLayer.h"
 #include <EGL/egl.h>
 #include <GLES3/gl32.h>
 
@@ -28,7 +29,7 @@ public:
 
     void InitializeResources();
 
-    void RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat, std::vector<SpatialObject*> sos);
+    void RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat, std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayer, int viewIndex);
 
     int GetDisplayTexture(int appId);
 
@@ -52,6 +53,7 @@ private:
     GLuint createDisplayTexture();
 
     GLuint _program;
+    GLuint _program2D;
     GLint _vertexAttribCoords;
     GLuint _debugVbo;
     GLuint _debugEbo;

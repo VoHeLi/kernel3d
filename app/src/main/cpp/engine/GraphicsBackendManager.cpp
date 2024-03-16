@@ -145,7 +145,8 @@ GraphicsBackendManager::AllocateSwapchainImageStructs(uint32_t capacity, XrSwapc
     return swapchainImageBase;
 }
 
-void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage, int64_t swapchainFormat, std::vector<SpatialObject*> sos) {
+void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
+                                        int64_t swapchainFormat, std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayers, int viewIndex) {
     //CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
     UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
 
@@ -225,13 +226,17 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     glUseProgram(_program);
 
     GLint finalMatrixLocation = glGetUniformLocation(_program, "finalMatrix");
-
     glm::mat4x4 finalMatrix = projectionMatrix2 * viewMatrix;
     glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix));
 
+    GLuint debugtex = 0;
 
     for(SpatialObject* so : sos){
-        glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+        if(so->_textureId != 0)
+            debugtex = so->_textureId;
+        //debugtex = so->_textureId;
+
+        /*glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
@@ -241,13 +246,62 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
         glBindTexture(DEBUG_TEXTURE_TYPE, so->_textureId);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(0);*/
     }
 
 
 
     glUseProgram(0);
-    //TODO RENDER REAL Objects
+
+    glUseProgram(_program2D);
+
+    GLint finalMatrixLocation2D = glGetUniformLocation(_program2D, "finalMatrix");
+    GLint viewIdLocation = glGetUniformLocation(_program2D, "viewId");
+    glUniform1i(viewIdLocation, viewIndex);
+
+    float dist = glm::distance(glm::vec3(0,0,0), position);
+
+    float opacity = 1.0f-5.0f*position.z;
+
+    GLint opacityLocation = glGetUniformLocation(_program2D, "opacity");
+    glUniform1f(opacityLocation, opacity);
+
+    for(XrAppLayer* al : appLayers){
+        al->PrepareRendering();
+
+        GLuint textureId = 0;
+        switch(*al->currentSwapchainIndexHandle){
+            case 0:
+                textureId = al->_textureId1;
+                break;
+            case 1:
+                textureId = al->_textureId2;
+                break;
+            case 2:
+                textureId = al->_textureId3;
+                break;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+
+        glm::vec3 pos = glm::vec3(0, 0,-1.0f);
+        glm::quat rot = glm::quat(1,0,0,0);
+        glm::vec3 size = glm::vec3(16.0f/9.0f, 1.0f, 1.0f);
+        SpatialObject* appDisplay = new SpatialObject(pos, rot,  size, 0);
+
+        glUniformMatrix4fv(finalMatrixLocation2D, 1, false, glm::value_ptr(finalMatrix*appDisplay->getTransformationMatrix()));
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(DEBUG_TEXTURE_TYPE, textureId);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        glDisableVertexAttribArray(0);
+    }
+
+    glUseProgram(0);
+
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -330,6 +384,37 @@ const char* fragmentShaderSource =
         //"  gl_FragColor = texture2DArray(textureSampler, textureCoords);\n"
         "}\0";
 
+
+// Vertex shader source code
+const char* vertexShaderSource2D =
+        "#version 300 es\n"
+        "#extension GL_OES_EGL_image_external : enable\n"
+        "#extension GL_OES_texture_3D : enable\n"
+        "in vec4 position;\n"
+        "out vec2 textureCoords;\n"
+        "uniform mat4 finalMatrix;\n"
+        "void main() {\n"
+        "  gl_Position = vec4(2.0*position.x,2.0*position.y,0,1.0);"
+        "  textureCoords = vec2((position.x+0.5), (position.y+0.5)); \n"
+        "}\0";
+
+// Fragment shader source code
+const char* fragmentShaderSource2D =
+        "#version 300 es\n"
+        "#extension GL_OES_EGL_image_external : enable\n"
+        "#extension GL_OES_texture_3D : enable\n"
+        "precision mediump float;\n"
+        "uniform sampler2DArray textureSampler;\n" //Change between this and external samplerExternalOES, sampler2D
+        "uniform int viewId;\n"
+        "uniform float opacity;\n"
+        "in vec2 textureCoords;\n"
+        "out vec4 fragColor;\n"
+        "void main() {\n"
+        "  fragColor = vec4(textureCoords.x, textureCoords.y, 1.0, 1.0);\n"
+        "  fragColor = texture(textureSampler, vec3(textureCoords, viewId));\n"
+        "  fragColor = vec4(fragColor.rgb, opacity);\n"
+        "}\0";
+
 GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -391,6 +476,23 @@ void GraphicsBackendManager::InitializeResources() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+
+    GLuint vertexShader2D = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader2D, 1, &vertexShaderSource2D, NULL);
+    glCompileShader(vertexShader2D);
+
+    GLuint fragmentShader2D = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader2D, 1, &fragmentShaderSource2D, NULL);
+    glCompileShader(fragmentShader2D);
+
+    _program2D = glCreateProgram();
+    glAttachShader(_program2D, vertexShader2D);
+    glAttachShader(_program2D, fragmentShader2D);
+    glLinkProgram(_program2D);
+
+    glDeleteShader(vertexShader2D);
+    glDeleteShader(fragmentShader2D);
+
     // Set up VBO for quad
     /*GLfloat vertices[] = {
             -0.27f, -0.48f, -0.5f,
@@ -420,6 +522,12 @@ void GraphicsBackendManager::InitializeResources() {
 
     glUseProgram(_program);
     glUniform1i(textureSamplerLocation, 0);
+    glUseProgram(0);
+
+    GLint textureSamplerLocation2 = glGetUniformLocation(_program2D, "textureSampler");
+
+    glUseProgram(_program2D);
+    glUniform1i(textureSamplerLocation2, 0);
     glUseProgram(0);
 
     //TODO, MOVE TO ANOTHER CLASS

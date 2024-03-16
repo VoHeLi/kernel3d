@@ -3,6 +3,7 @@
 #include "../openxr/openxr_platform.h"
 #include "GraphicsBackendManager.h"
 #include "SpatialObject.h"
+#include "XrAppLayer.h"
 
 #include <vector>
 #include <map>
@@ -30,7 +31,9 @@ public:
     void PollActions();
 
     void PrepareRendering();
-    void RenderFrame(std::vector<SpatialObject*> sos);
+    void RenderFrame(std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayers);
+
+    std::vector<XrView> _views;
 
 private:
     struct Swapchain {
@@ -51,7 +54,7 @@ private:
     XrFrameState _frameState;
 
     std::vector<XrViewConfigurationView> _configViews;
-    std::vector<XrView> _views;
+
     int64_t _colorSwapchainFormat{-1};
     std::vector<Swapchain> _swapchains;
     std::map<XrSwapchain, std::vector<XrSwapchainImageBaseHeader*>> _swapchainImages;
@@ -68,5 +71,5 @@ private:
 
 
     bool RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompositionLayerProjectionView>& projectionLayerViews,
-                     XrCompositionLayerProjection& layer, std::vector<SpatialObject*> sos);
+                     XrCompositionLayerProjection& layer, std::vector<SpatialObject*> sos, std::vector<XrAppLayer*> appLayers);
 };
