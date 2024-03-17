@@ -64,6 +64,9 @@ void mirage_app_server::initializeServerThread() {
                 __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Initialization ends, xrWaitFrame() called!");
                 _lastUpdateTime = getCurrentTimeNanos();
                 _frameIndex = 0;
+
+                initControllers();
+
                 _isInitialized = true;
                 return;
                 break;
@@ -173,8 +176,8 @@ void mirage_app_server::populateSystemProperties() {
         .vendorId = MIRAGE_VENDOR_ID,
         .systemName = SYSTEM_NAME,
         .graphicsProperties = {
-            .maxSwapchainImageHeight = 1600, //TODO : MAKE IT ADAPTATIVE
-            .maxSwapchainImageWidth = 1600, //TODO : MAKE IT ADAPTATIVE
+            .maxSwapchainImageHeight = RESOLUTION, //TODO : MAKE IT ADAPTATIVE
+            .maxSwapchainImageWidth = RESOLUTION, //TODO : MAKE IT ADAPTATIVE
             .maxLayerCount = XR_MIN_COMPOSITION_LAYERS_SUPPORTED,
         },
         .trackingProperties = {
@@ -202,20 +205,20 @@ void mirage_app_server::populateSystemProperties() {
     {
             .type = XR_TYPE_VIEW_CONFIGURATION_VIEW,
             .next = nullptr,
-            .recommendedImageRectWidth = 1600,
-            .maxImageRectWidth = 1600,
-            .recommendedImageRectHeight = 1600,
-            .maxImageRectHeight = 1600,
+            .recommendedImageRectWidth = RESOLUTION,
+            .maxImageRectWidth = RESOLUTION,
+            .recommendedImageRectHeight = RESOLUTION,
+            .maxImageRectHeight = RESOLUTION,
             .recommendedSwapchainSampleCount = 1,
             .maxSwapchainSampleCount = 1,
         },
     {
             .type = XR_TYPE_VIEW_CONFIGURATION_VIEW,
             .next = nullptr,
-            .recommendedImageRectWidth = 1600,
-            .maxImageRectWidth = 1600,
-            .recommendedImageRectHeight = 1600,
-            .maxImageRectHeight = 1600,
+            .recommendedImageRectWidth = RESOLUTION,
+            .maxImageRectWidth = RESOLUTION,
+            .recommendedImageRectHeight = RESOLUTION,
+            .maxImageRectHeight = RESOLUTION,
             .recommendedSwapchainSampleCount = 1,
             .maxSwapchainSampleCount = 1,
         }
@@ -348,7 +351,7 @@ void mirage_app_server::receiveHardwareBufferFromClient() {
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Test2");
 
     if(_appLayer == nullptr){
-        _appLayer = new XrAppLayer(1600, 1600, hardwareBuffers[0], hardwareBuffers[1], hardwareBuffers[2], textureType, count, CTSM(swapchainDescriptor->currentSwapchainIndexHandle, uint32_t*));
+        _appLayer = new XrAppLayer(RESOLUTION, RESOLUTION, hardwareBuffers[0], hardwareBuffers[1], hardwareBuffers[2], textureType, count, CTSM(swapchainDescriptor->currentSwapchainIndexHandle, uint32_t*));
 
     }
 
@@ -502,6 +505,8 @@ void mirage_app_server::updateBegin(XrView* backviews, XrTime predictedDisplayTi
         instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
     }
 
+
+
     //DEBUG SET XRVIEW TO IDENTITY
     sessionDescriptor->viewCount = 2;
     XrView* views = CTSM(sessionDescriptor->views, XrView*);
@@ -528,6 +533,9 @@ void mirage_app_server::updateBegin(XrView* backviews, XrTime predictedDisplayTi
 
         views[i] = backviews[i];
     }
+
+    //Update controllers
+    updateControllers();
 
     //We end the client xrWaitFrame()
     cts_instruction instruction = cts_instruction::WAIT_FRAME;
@@ -578,7 +586,199 @@ void mirage_app_server::updateEnd() {
 }
 
 
+void mirage_app_server::initControllers() {
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller paths registering 1");
 
+    XrInstanceDescriptor* instanceDescriptor = CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller paths registering 2");
+
+    XrPathDescriptor* pathDescriptor = CTSM(instanceDescriptor->firstPathDescriptor, XrPathDescriptor*);
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller paths registering 3");
+
+    int counter = 1;
+
+    while(pathDescriptor != CTSM(nullptr, void*) && pathDescriptor != nullptr) {
+
+        TryRegisterControllerPath((XrPath)counter, CTSM(pathDescriptor->pathString, const char*));
+
+        pathDescriptor = CTSM(pathDescriptor->nextPathDescriptor, XrPathDescriptor*);
+
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller path registered : %d", counter);
+        counter++;
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller paths registered");
+
+    XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller test 2");
+
+    //Actions & action sets
+    XrActionSetDescriptor* actionSetDescriptor = CTSM(instanceDescriptor->firstActionSetDescriptor, XrActionSetDescriptor*);
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller test 3");
+
+    uint64_t setCounter = 1;
+    while(actionSetDescriptor != CTSM(nullptr, void*) && actionSetDescriptor != nullptr) {
+
+        TryRegisterActionSet((XrActionSet)setCounter, CTSM(actionSetDescriptor->createInfo, XrActionSetCreateInfo*)->actionSetName);
+
+        XrActionDescriptor* actionDescriptor = CTSM(actionSetDescriptor->firstActionDescriptor, XrActionDescriptor*);
+        while(actionDescriptor != CTSM(nullptr, void*)) {
+            __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller test 3.5");
+            TryRegisterAction((XrAction)actionDescriptor, (XrActionSet)setCounter, CTSM(actionDescriptor->createInfo, XrActionCreateInfo*)->actionName);
+            __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller test 3.6");
+
+
+            actionDescriptor = CTSM(actionDescriptor->nextActionDescriptor, XrActionDescriptor*);
+        }
+
+
+
+        setCounter++;
+
+        actionSetDescriptor = CTSM(actionSetDescriptor->nextActionSetDescriptor, XrActionSetDescriptor*);
+    }
+
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE", "Controller test 4");
+
+
+    //Spaces
+    XrActionSpaceDescriptor* actionSpaceDescriptor = CTSM(sessionDescriptor->firstActionSpaceDescriptor, XrActionSpaceDescriptor*);
+
+    while(actionSpaceDescriptor != CTSM(nullptr, void*)) {
+        TryRegisterControllerSpace((XrSpace)actionSpaceDescriptor, (XrAction)CTSM(actionSpaceDescriptor->createInfo, XrActionSpaceCreateInfo*)->action, (XrPath)CTSM(actionSpaceDescriptor->createInfo, XrActionSpaceCreateInfo*)->subactionPath);
+
+        actionSpaceDescriptor = CTSM(actionSpaceDescriptor->nextActionSpaceDescriptor, XrActionSpaceDescriptor*);
+    }
+
+}
+
+void mirage_app_server::updateControllers() {
+    XrInstanceDescriptor* instanceDescriptor = CTSM(sharedMemoryDescriptor->get_instance_ptr(), XrInstanceDescriptor*);
+    XrSessionDescriptor* sessionDescriptor = CTSM(instanceDescriptor->firstSessionDescriptor, XrSessionDescriptor*);
+
+    //Iterate through action spaces
+    XrActionSpaceDescriptor* actionSpaceDescriptor = CTSM(sessionDescriptor->firstActionSpaceDescriptor, XrActionSpaceDescriptor*);
+    while(actionSpaceDescriptor != CTSM(nullptr, void*) && actionSpaceDescriptor != nullptr) {
+
+        XrSpaceLocation location = {
+            .type = XR_TYPE_SPACE_LOCATION,
+            .next = nullptr,
+            .locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT,
+            .pose = {
+                .orientation = {
+                    .x = 0,
+                    .y = 0,
+                    .z = 0,
+                    .w = 1,
+                },
+                .position = {
+                    .x = 0,
+                    .y = 2,
+                    .z = 0,
+                },
+            },
+
+        };
+        GetControllerSpacePose(getCurrentTimeNanos(), (XrSpace)actionSpaceDescriptor, (XrSpace)CTSM(sessionDescriptor->firstReferenceSpaceDescriptor, XrReferenceSpaceDescriptor*), &location);
+        actionSpaceDescriptor->currentPose = location.pose;
+
+        actionSpaceDescriptor = CTSM(actionSpaceDescriptor->nextActionSpaceDescriptor, XrActionSpaceDescriptor*);
+    }
+
+    //Iterate though actions
+    XrActionSetDescriptor* actionSetDescriptor = CTSM(instanceDescriptor->firstActionSetDescriptor, XrActionSetDescriptor*);
+    while(actionSetDescriptor != CTSM(nullptr, void*) && actionSetDescriptor != nullptr) {
+        XrActionDescriptor* actionDescriptor = CTSM(actionSetDescriptor->firstActionDescriptor, XrActionDescriptor*);
+        while(actionDescriptor != CTSM(nullptr, void*)) {
+            switch (CTSM(actionDescriptor->createInfo,XrActionCreateInfo*)->actionType) {
+                case XR_ACTION_TYPE_BOOLEAN_INPUT: {
+                    if(actionDescriptor->actionStateCount != 2) break;
+                    XrActionStateBoolean* actionStateBoolean = CTSM(actionDescriptor->actionState, XrActionStateBoolean*);
+
+                    XrActionStateGetInfo getInfo = {
+                        .type = XR_TYPE_ACTION_STATE_GET_INFO,
+                        .next = nullptr,
+                        .action = (XrAction)actionDescriptor,
+                        .subactionPath = CTSM(CTSM(actionDescriptor->createInfo, XrActionCreateInfo*)->subactionPaths, XrPath*)[0],
+                    };
+                    GetControllerActionStateBoolean(&getInfo, &actionStateBoolean[0]);
+
+                    XrActionStateGetInfo getInfo2 = {
+                            .type = XR_TYPE_ACTION_STATE_GET_INFO,
+                            .next = nullptr,
+                            .action = (XrAction)actionDescriptor,
+                            .subactionPath = CTSM(CTSM(actionDescriptor->createInfo, XrActionCreateInfo*)->subactionPaths, XrPath*)[1],
+                    };
+                    GetControllerActionStateBoolean(&getInfo2, &actionStateBoolean[1]);
+                    break;
+                }
+                case XR_ACTION_TYPE_FLOAT_INPUT: {
+                    if (actionDescriptor->actionStateCount != 2) break;
+                    XrActionStateFloat *actionStateFloat = CTSM(actionDescriptor->actionState,
+                                                                    XrActionStateFloat*);
+
+                    XrActionStateGetInfo getInfo = {
+                            .type = XR_TYPE_ACTION_STATE_GET_INFO,
+                            .next = nullptr,
+                            .action = (XrAction) actionDescriptor,
+                            .subactionPath = CTSM(CTSM(actionDescriptor->createInfo,
+                                                       XrActionCreateInfo * )->subactionPaths,
+                                                  XrPath*)[0],
+                    };
+                    GetControllerActionStateFloat(&getInfo, &actionStateFloat[0]);
+
+                    XrActionStateGetInfo getInfo2 = {
+                            .type = XR_TYPE_ACTION_STATE_GET_INFO,
+                            .next = nullptr,
+                            .action = (XrAction) actionDescriptor,
+                            .subactionPath = CTSM(CTSM(actionDescriptor->createInfo,
+                                                       XrActionCreateInfo * )->subactionPaths,
+                                                  XrPath*)[1],
+                    };
+                    GetControllerActionStateFloat(&getInfo2, &actionStateFloat[1]);
+                    break;
+                }
+                case XR_ACTION_TYPE_VECTOR2F_INPUT: {
+                    if (actionDescriptor->actionStateCount != 2) break;
+                    XrActionStateVector2f *actionStateVector2f = CTSM(actionDescriptor->actionState,
+                                                                XrActionStateVector2f*);
+
+                    XrActionStateGetInfo getInfo = {
+                            .type = XR_TYPE_ACTION_STATE_GET_INFO,
+                            .next = nullptr,
+                            .action = (XrAction) actionDescriptor,
+                            .subactionPath = CTSM(CTSM(actionDescriptor->createInfo,
+                                                       XrActionCreateInfo * )->subactionPaths,
+                                                  XrPath*)[0],
+                    };
+                    GetControllerActionStateVector2f(&getInfo, &actionStateVector2f[0]);
+
+                    XrActionStateGetInfo getInfo2 = {
+                            .type = XR_TYPE_ACTION_STATE_GET_INFO,
+                            .next = nullptr,
+                            .action = (XrAction) actionDescriptor,
+                            .subactionPath = CTSM(CTSM(actionDescriptor->createInfo,
+                                                       XrActionCreateInfo * )->subactionPaths,
+                                                  XrPath*)[1],
+                    };
+                    GetControllerActionStateVector2f(&getInfo2, &actionStateVector2f[1]);
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            actionDescriptor = CTSM(actionDescriptor->nextActionDescriptor, XrActionDescriptor*);
+        }
+
+        actionSetDescriptor = CTSM(actionSetDescriptor->nextActionSetDescriptor, XrActionSetDescriptor*);
+    }
+
+
+
+}
 
 
 

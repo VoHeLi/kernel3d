@@ -907,12 +907,17 @@ XrResult mirageGetActionStateBoolean(XrSession session, const XrActionStateGetIn
     }
 
     if(subPathIndex == -1){
-        __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Subaction path not found!");
+        __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2L", "Subaction path not found!");
         return XR_ERROR_PATH_INVALID;
     }
 
+
+
     //Get the action state
     *data = actionDescriptor->actionState[subPathIndex].boolean;
+
+    data->isActive = XR_TRUE;
+    data->changedSinceLastSync = XR_TRUE;
 
     return XR_SUCCESS;
 }
@@ -940,6 +945,9 @@ XrResult mirageGetActionStateFloat(XrSession session, const XrActionStateGetInfo
     //Get the action state
     *data = actionDescriptor->actionState[subPathIndex].floatAction;
 
+    data->isActive = XR_TRUE;
+    data->changedSinceLastSync = XR_TRUE;
+
     return XR_SUCCESS;
 }
 
@@ -964,6 +972,9 @@ XrResult mirageGetActionStateVector2f(XrSession session, const XrActionStateGetI
 
     //Get the action state
     *data = actionDescriptor->actionState[subPathIndex].vector2f;
+
+    data->isActive = XR_TRUE;
+    data->changedSinceLastSync = XR_TRUE;
 
     return XR_SUCCESS;
 }

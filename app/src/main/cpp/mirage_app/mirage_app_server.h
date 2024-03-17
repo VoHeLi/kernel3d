@@ -26,8 +26,12 @@
 #include "engine/OpenXRPlugin.h"
 #include "engine/XrAppLayer.h"
 
+#include "controllers/controllers_binding.h"
+
 #define SOCKET_PATH "\0mirage_service_listener" //TODO : Change this to a more unique name per app
 #define STC_MEMORY_SIZE 1048576
+
+#define RESOLUTION 800
 
 #define MIRAGE_VENDOR_ID 0xb2328062
 #define SYSTEM_NAME "Mirage System"
@@ -72,9 +76,10 @@ private:
     void populateSystemProperties();
     void populateInitialSessionProperties();
     void receiveHardwareBufferFromClient();
+    void initControllers();
 
 
-
+    void updateControllers();
 };
 
 
