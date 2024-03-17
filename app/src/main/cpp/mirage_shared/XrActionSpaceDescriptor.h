@@ -18,4 +18,5 @@ public:
     XrActionSpaceDescriptor* nextActionSpaceDescriptor;
     XrSessionDescriptor* sessionDescriptor;
     XrActionSpaceCreateInfo* createInfo;
+    XrPosef currentPose;
 };

@@ -21,6 +21,12 @@ XrActionDescriptor::XrActionDescriptor(shared_memory_descriptor *sharedMemoryDes
         ((XrPath*)this->createInfo->subactionPaths)[i] = createInfo->subactionPaths[i];
     }
 
+    this->actionStateCount = createInfo->countSubactionPaths;
+    this->actionState = NEW_SHARED(ActionState[createInfo->countSubactionPaths]);
+    for(int i = 0; i < createInfo->countSubactionPaths; i++){
+        this->actionState[i] = {};
+    }
+
     this->nextActionDescriptor = nullptr;
 
     if(parent != nullptr){

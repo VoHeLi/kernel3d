@@ -28,6 +28,8 @@ XrActionSpaceDescriptor::XrActionSpaceDescriptor(shared_memory_descriptor *share
         currentReferenceSpaceDescriptor->nextActionSpaceDescriptor = this;
     }
 
+    this->currentPose = createInfo->poseInActionSpace;
+
     this->created = true;
 
 }

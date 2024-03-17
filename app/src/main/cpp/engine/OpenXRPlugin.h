@@ -35,6 +35,7 @@ public:
 
     std::vector<XrView> _views;
 
+    XrFrameState _frameState;
 private:
     struct Swapchain {
         XrSwapchain handle;
@@ -51,7 +52,6 @@ private:
     bool _sessionRunning = true;
     XrSpace _appSpace;
     XrTime _currentTime;
-    XrFrameState _frameState;
 
     std::vector<XrViewConfigurationView> _configViews;
 

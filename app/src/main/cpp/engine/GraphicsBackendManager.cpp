@@ -270,7 +270,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
         al->PrepareRendering();
 
         GLuint textureId = 0;
-        switch(*al->currentSwapchainIndexHandle){
+        switch((*al->currentSwapchainIndexHandle+2)%3){
             case 0:
                 textureId = al->_textureId1;
                 break;
@@ -412,7 +412,7 @@ const char* fragmentShaderSource2D =
         "void main() {\n"
         "  fragColor = vec4(textureCoords.x, textureCoords.y, 1.0, 1.0);\n"
         "  fragColor = texture(textureSampler, vec3(textureCoords, viewId));\n"
-        "  fragColor = vec4(fragColor.rgb, opacity);\n"
+        "  fragColor = vec4(fragColor.r, fragColor.g, fragColor.b, opacity);\n"
         "}\0";
 
 GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {

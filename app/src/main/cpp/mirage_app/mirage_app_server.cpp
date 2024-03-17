@@ -447,7 +447,7 @@ void mirage_app_server::debugLog() {
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_UPDATE", "Reference space info : %f", CTSM(referenceSpaceDescriptor->createInfo, XrReferenceSpaceCreateInfo*)->poseInReferenceSpace.orientation.w);
 }
 
-void mirage_app_server::updateBegin(XrView* backviews) {
+void mirage_app_server::updateBegin(XrView* backviews, XrTime predictedDisplayTime, XrDuration predictedDisplayPeriod) {
     //We do the approximation of the time, TODO : USE THE REAL TIME FOR MORE ACCURACY
     XrTime currentTime = getCurrentTimeNanos();
     XrDuration deltaTime = currentTime - _lastUpdateTime;
@@ -459,8 +459,8 @@ void mirage_app_server::updateBegin(XrView* backviews) {
     XrFrameState* frameState = CTSM(sessionDescriptor->waitFrameState, XrFrameState*);
 
     //We update the frame state
-    frameState->predictedDisplayTime = currentTime + deltaTime;
-    frameState->predictedDisplayPeriod = deltaTime;
+    frameState->predictedDisplayTime = predictedDisplayTime;
+    frameState->predictedDisplayPeriod = predictedDisplayPeriod;
     frameState->shouldRender = _frameIndex > 5 ? XR_TRUE : XR_FALSE;
 
     //Send event to instance
@@ -485,6 +485,18 @@ void mirage_app_server::updateBegin(XrView* backviews) {
             .session = (XrSession)STCM(sessionDescriptor, XrSessionDescriptor*),
             .state = XR_SESSION_STATE_VISIBLE,
             .time = currentTime,
+        };
+
+        instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);
+    }
+    else if(_frameIndex == 90) //TODO CHANGE
+    {
+        XrEventDataSessionStateChanged sessionStateChanged = {
+                .type = XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED,
+                .next = nullptr,
+                .session = (XrSession)STCM(sessionDescriptor, XrSessionDescriptor*),
+                .state = XR_SESSION_STATE_FOCUSED,
+                .time = currentTime,
         };
 
         instanceDescriptor->pushEvent(sharedMemoryDescriptor, (XrEventDataBuffer*)&sessionStateChanged);

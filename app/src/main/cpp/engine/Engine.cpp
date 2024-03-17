@@ -170,7 +170,7 @@ void Engine::engineMain() {
 
 
         //DEBUG
-        engineUpdateTest(&appLayers, openXrPlugin->_views.data());
+        engineUpdateTest(&appLayers, openXrPlugin->_views.data(), openXrPlugin->_frameState.predictedDisplayTime, openXrPlugin->_frameState.predictedDisplayPeriod);
 
         //Hand tracking test TODO REMOVE
         XrPosef indexTipPose;

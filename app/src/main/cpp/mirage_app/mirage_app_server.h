@@ -43,7 +43,7 @@ public:
 
     void debugLog();
 
-    void updateBegin(XrView* views);
+    void updateBegin(XrView* views, XrTime predictedDisplayTime, XrDuration predictedDisplayPeriod);
 
     void updateEnd();
 

@@ -665,6 +665,19 @@ XrResult mirageLocateSpace(XrSpace space, XrSpace baseSpace, XrTime time, XrSpac
         XrQuaternionf{0, 0, 0, 1},
         XrVector3f{0, 0, 0}}};
 
+    XrActionSpaceDescriptor* spaceDescriptor = (XrActionSpaceDescriptor*)space;
+    __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Space : %p", spaceDescriptor);
+    if(spaceDescriptor != nullptr && spaceDescriptor->signature == XR_ACTION_SPACE_DESCRIPTOR_SIGNATURE){
+        __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action space found! : %lx", spaceDescriptor->signature);
+        *location = XrSpaceLocation{XR_TYPE_SPACE_LOCATION,
+                                    nullptr, XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT |
+                                             XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_TRACKED_BIT,
+                                    spaceDescriptor->currentPose};
+
+    }
+
+
+
     //TODO USE REAL SPACE LOCATION
 
     return XR_SUCCESS;
@@ -761,33 +774,43 @@ XrResult mirageCreateAction(XrActionSet actionSet, const XrActionCreateInfo *cre
         actionSetDescriptor->firstActionDescriptor = NEW_SHARED(
                 XrActionDescriptor, sharedMemoryDescriptor, createInfo, nullptr);
 
-        *action = (XrAction) 1;
+        *action = (XrAction) actionSetDescriptor->firstActionDescriptor;
+
+        if(*action == nullptr){
+            __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER", "Action value : %p", *action);
+        }
+        //__android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER", "Action value : %p", *action);
 
         return XR_SUCCESS;
     }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Actions found");
 
-    uint64_t counter = 1;
-
     XrActionDescriptor* lastActionDescriptor = actionDescriptor;
 
     //Check the existing actions
     while(actionDescriptor != nullptr) {
         if (strcmp(actionDescriptor->createInfo->actionName, createInfo->actionName) == 0) {
-            *action = (XrAction) counter;
+            *action = (XrAction) actionDescriptor;
+            if(*action == nullptr){
+                __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER", "Action alert value : %p", *action);
+            }
             return XR_SUCCESS;
         }
         lastActionDescriptor = actionDescriptor;
         actionDescriptor = actionDescriptor->nextActionDescriptor;
-        counter++;
     }
+
+
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action not found, adding it!");
 
     lastActionDescriptor->nextActionDescriptor = NEW_SHARED(XrActionDescriptor, sharedMemoryDescriptor, createInfo, lastActionDescriptor);
 
-    *action = (XrAction) counter;
+    *action = (XrAction) lastActionDescriptor->nextActionDescriptor;
+    if(*action == nullptr){
+        __android_log_print(ANDROID_LOG_WARN, "MIRAGE_BINDER", "Action value 2 : %p", *action);
+    }
 
     __android_log_print(ANDROID_LOG_DEBUG, "MIRAGE_BINDER", "Action added!");
 
@@ -869,15 +892,111 @@ XrResult mirageGetCurrentInteractionProfile(XrSession session, XrPath topLevelUs
     return XR_SUCCESS;
 }
 
-XrResult mirageGetActionStateBoolean(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateBoolean *data){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+XrResult mirageGetActionStateBoolean(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateBoolean *data){
 
-XrResult mirageGetActionStateFloat(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateFloat *data){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ActionStateBoolean called!");
 
-XrResult mirageGetActionStateVector2f(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateVector2f *data){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    XrActionDescriptor* actionDescriptor = (XrActionDescriptor*)getInfo->action;
 
-XrResult mirageGetActionStatePose(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStatePose *data){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    uint32_t subPathIndex = -1;
+    for(int i = 0; i < actionDescriptor->createInfo->countSubactionPaths; i++){
+        if(actionDescriptor->createInfo->subactionPaths[i] == getInfo->subactionPath){
+            subPathIndex = i;
+            break;
+        }
+    }
 
-XrResult mirageSyncActions(XrSession session, const XrActionsSyncInfo *syncInfo){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
+    if(subPathIndex == -1){
+        __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Subaction path not found!");
+        return XR_ERROR_PATH_INVALID;
+    }
+
+    //Get the action state
+    *data = actionDescriptor->actionState[subPathIndex].boolean;
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageGetActionStateFloat(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateFloat *data) {
+
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ActionStateFloat called!");
+
+    XrActionDescriptor *actionDescriptor = (XrActionDescriptor *) getInfo->action;
+
+    uint32_t subPathIndex = -1;
+    for (int i = 0; i < actionDescriptor->createInfo->countSubactionPaths; i++) {
+        if (actionDescriptor->createInfo->subactionPaths[i] == getInfo->subactionPath) {
+            subPathIndex = i;
+            break;
+        }
+    }
+
+    if (subPathIndex == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Subaction path not found!");
+        return XR_ERROR_PATH_INVALID;
+    }
+
+    //Get the action state
+    *data = actionDescriptor->actionState[subPathIndex].floatAction;
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageGetActionStateVector2f(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStateVector2f *data){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ActionStateVector2f called!");
+
+    XrActionDescriptor *actionDescriptor = (XrActionDescriptor *) getInfo->action;
+
+    uint32_t subPathIndex = -1;
+    for (int i = 0; i < actionDescriptor->createInfo->countSubactionPaths; i++) {
+        if (actionDescriptor->createInfo->subactionPaths[i] == getInfo->subactionPath) {
+            subPathIndex = i;
+            break;
+        }
+    }
+
+    if (subPathIndex == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Subaction path not found!");
+        return XR_ERROR_PATH_INVALID;
+    }
+
+    //Get the action state
+    *data = actionDescriptor->actionState[subPathIndex].vector2f;
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageGetActionStatePose(XrSession session, const XrActionStateGetInfo *getInfo, XrActionStatePose *data){
+
+    __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "ActionStatePose called!");
+
+    XrActionDescriptor *actionDescriptor = (XrActionDescriptor *) getInfo->action;
+
+    uint32_t subPathIndex = -1;
+    for (int i = 0; i < actionDescriptor->createInfo->countSubactionPaths; i++) {
+        if (actionDescriptor->createInfo->subactionPaths[i] == getInfo->subactionPath) {
+            subPathIndex = i;
+            break;
+        }
+    }
+
+    if (subPathIndex == -1) {
+        __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Subaction path not found!");
+        return XR_ERROR_PATH_INVALID;
+    }
+
+    //Get the action state
+    *data = actionDescriptor->actionState[subPathIndex].pose;
+
+    return XR_SUCCESS;
+}
+
+XrResult mirageSyncActions(XrSession session, const XrActionsSyncInfo *syncInfo){
+    __android_log_print(ANDROID_LOG_ERROR, "PICOREUR2", "Unimplemented");
+
+    return XR_SUCCESS;}
 
 XrResult mirageEnumerateBoundSourcesForAction(XrSession session, const XrBoundSourcesForActionEnumerateInfo *enumerateInfo,
                                               uint32_t sourceCapacityInput, uint32_t *sourceCountOutput, XrPath *sources){ __android_log_print(ANDROID_LOG_DEBUG, "PICOREUR2", "Unimplemented"); return XR_ERROR_RUNTIME_FAILURE;}
