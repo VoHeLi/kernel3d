@@ -554,6 +554,12 @@ void UpdateJoystickInput(XrHandEXT hand, XrActionStateVector2f* data){
     if(hand == XR_HAND_LEFT_EXT){
         if(!isActive){
             leftJoystickActive = false;
+            data->changedSinceLastSync = true;
+            data->isActive = true;
+            data->currentState = XrVector2f{
+                    .x = 0,
+                    .y = 0
+            };
             return;
         }
 
@@ -566,7 +572,13 @@ void UpdateJoystickInput(XrHandEXT hand, XrActionStateVector2f* data){
     }
     else{
         if(!isActive){
-            rightJoystickActive = false;
+            rightJoystickActive = false;data->changedSinceLastSync = true;
+            data->isActive = true;
+            data->currentState = XrVector2f{
+                    .x = 0,
+                    .y = 0
+            };
+
             return;
         }
 

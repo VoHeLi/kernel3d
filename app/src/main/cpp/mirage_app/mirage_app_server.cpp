@@ -695,7 +695,7 @@ void mirage_app_server::updateControllers() {
             switch (CTSM(actionDescriptor->createInfo,XrActionCreateInfo*)->actionType) {
                 case XR_ACTION_TYPE_BOOLEAN_INPUT: {
                     if(actionDescriptor->actionStateCount != 2) break;
-                    XrActionStateBoolean* actionStateBoolean = CTSM(actionDescriptor->actionState, XrActionStateBoolean*);
+                    ActionState* actionState = CTSM(actionDescriptor->actionState, ActionState*);
 
                     XrActionStateGetInfo getInfo = {
                         .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -703,7 +703,7 @@ void mirage_app_server::updateControllers() {
                         .action = (XrAction)actionDescriptor,
                         .subactionPath = CTSM(CTSM(actionDescriptor->createInfo, XrActionCreateInfo*)->subactionPaths, XrPath*)[0],
                     };
-                    GetControllerActionStateBoolean(&getInfo, &actionStateBoolean[0]);
+                    GetControllerActionStateBoolean(&getInfo, &(actionState[0]).boolean);
 
                     XrActionStateGetInfo getInfo2 = {
                             .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -711,13 +711,12 @@ void mirage_app_server::updateControllers() {
                             .action = (XrAction)actionDescriptor,
                             .subactionPath = CTSM(CTSM(actionDescriptor->createInfo, XrActionCreateInfo*)->subactionPaths, XrPath*)[1],
                     };
-                    GetControllerActionStateBoolean(&getInfo2, &actionStateBoolean[1]);
+                    GetControllerActionStateBoolean(&getInfo2, &(actionState[1]).boolean);
                     break;
                 }
                 case XR_ACTION_TYPE_FLOAT_INPUT: {
                     if (actionDescriptor->actionStateCount != 2) break;
-                    XrActionStateFloat *actionStateFloat = CTSM(actionDescriptor->actionState,
-                                                                    XrActionStateFloat*);
+                    ActionState* actionState = CTSM(actionDescriptor->actionState, ActionState*);
 
                     XrActionStateGetInfo getInfo = {
                             .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -727,7 +726,7 @@ void mirage_app_server::updateControllers() {
                                                        XrActionCreateInfo * )->subactionPaths,
                                                   XrPath*)[0],
                     };
-                    GetControllerActionStateFloat(&getInfo, &actionStateFloat[0]);
+                    GetControllerActionStateFloat(&getInfo, &(actionState[0]).floatAction);
 
                     XrActionStateGetInfo getInfo2 = {
                             .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -737,13 +736,12 @@ void mirage_app_server::updateControllers() {
                                                        XrActionCreateInfo * )->subactionPaths,
                                                   XrPath*)[1],
                     };
-                    GetControllerActionStateFloat(&getInfo2, &actionStateFloat[1]);
+                    GetControllerActionStateFloat(&getInfo2, &(actionState[1]).floatAction);
                     break;
                 }
                 case XR_ACTION_TYPE_VECTOR2F_INPUT: {
                     if (actionDescriptor->actionStateCount != 2) break;
-                    XrActionStateVector2f *actionStateVector2f = CTSM(actionDescriptor->actionState,
-                                                                XrActionStateVector2f*);
+                    ActionState* actionState = CTSM(actionDescriptor->actionState, ActionState*);
 
                     XrActionStateGetInfo getInfo = {
                             .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -753,7 +751,7 @@ void mirage_app_server::updateControllers() {
                                                        XrActionCreateInfo * )->subactionPaths,
                                                   XrPath*)[0],
                     };
-                    GetControllerActionStateVector2f(&getInfo, &actionStateVector2f[0]);
+                    GetControllerActionStateVector2f(&getInfo, &(actionState[0]).vector2f);
 
                     XrActionStateGetInfo getInfo2 = {
                             .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -763,7 +761,7 @@ void mirage_app_server::updateControllers() {
                                                        XrActionCreateInfo * )->subactionPaths,
                                                   XrPath*)[1],
                     };
-                    GetControllerActionStateVector2f(&getInfo2, &actionStateVector2f[1]);
+                    GetControllerActionStateVector2f(&getInfo2, &(actionState[1]).vector2f);
                     break;
                 }
                 default:

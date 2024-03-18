@@ -410,9 +410,11 @@ const char* fragmentShaderSource2D =
         "in vec2 textureCoords;\n"
         "out vec4 fragColor;\n"
         "void main() {\n"
-        "  fragColor = vec4(textureCoords.x, textureCoords.y, 1.0, 1.0);\n"
+        //"  fragColor = vec4(textureCoords.x, textureCoords.y, 1.0, 1.0);\n"
         "  fragColor = texture(textureSampler, vec3(textureCoords, viewId));\n"
-        "  fragColor = vec4(fragColor.r, fragColor.g, fragColor.b, opacity);\n"
+        //"  fragColor = vec4(fragColor.r, fragColor.g, fragColor.b, opacity);\n"
+        //"  float greenDist = (fragColor.r) + (1.0-fragColor.g) + (fragColor.b);\n"
+        //"  fragColor = vec4(fragColor.r, fragColor.g, fragColor.b, greenDist);\n"
         "}\0";
 
 GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
