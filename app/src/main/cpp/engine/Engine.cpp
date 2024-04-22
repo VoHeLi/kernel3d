@@ -101,11 +101,12 @@ void Engine::engineMain() {
     initializeHands(openXrPlugin);
 
     intentTest(graphicsBackendManager->GetDisplayTexture(1), 1);
+    intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
 
     glm::vec3 pos = glm::vec3(0, 0,-2.0f);
     glm::quat rot = glm::quat(1,0,0,0);
     glm::vec3 size = glm::vec3(16.0f/9.0f, 1.0f, 1.0f);
-    SpatialObject* appDisplay = new SpatialObject(pos, rot,  size, graphicsBackendManager->GetDisplayTexture(1));
+    SpatialObject* appDisplay = new SpatialObject(pos, rot,  size, graphicsBackendManager->GetDisplayTexture(2));
 
     glm::vec3 pos2 = glm::vec3(0, 0,-1.99f);
     glm::quat rot2 = glm::quat(1,0,0,0);
@@ -117,7 +118,7 @@ void Engine::engineMain() {
     spatialObjects.push_back(pointerDisplay);
 
 
-    /*intentTest(graphicsBackendManager->GetDisplayTexture(2), 2);
+    /*
     intentTest(graphicsBackendManager->GetDisplayTexture(3), 3);*/
 
 

@@ -223,35 +223,7 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
     //glClearDepthf(1.0f);
     glClear(GL_COLOR_BUFFER_BIT); //debug
 
-    glUseProgram(_program);
 
-    GLint finalMatrixLocation = glGetUniformLocation(_program, "finalMatrix");
-    glm::mat4x4 finalMatrix = projectionMatrix2 * viewMatrix;
-    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix));
-
-    GLuint debugtex = 0;
-
-    for(SpatialObject* so : sos){
-        if(so->_textureId != 0)
-            debugtex = so->_textureId;
-        //debugtex = so->_textureId;
-
-        /*glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-        glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*so->getTransformationMatrix()));
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(DEBUG_TEXTURE_TYPE, so->_textureId);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        glDisableVertexAttribArray(0);*/
-    }
-
-
-
-    glUseProgram(0);
 
     glUseProgram(_program2D);
 
@@ -286,19 +258,41 @@ void GraphicsBackendManager::RenderView(const XrCompositionLayerProjectionView& 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-
-        glm::vec3 pos = glm::vec3(0, 0,-1.0f);
-        glm::quat rot = glm::quat(1,0,0,0);
-        glm::vec3 size = glm::vec3(16.0f/9.0f, 1.0f, 1.0f);
-        SpatialObject* appDisplay = new SpatialObject(pos, rot,  size, 0);
-
-        glUniformMatrix4fv(finalMatrixLocation2D, 1, false, glm::value_ptr(finalMatrix*appDisplay->getTransformationMatrix()));
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(DEBUG_TEXTURE_TYPE, textureId);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         glDisableVertexAttribArray(0);
     }
+
+    glUseProgram(0);
+
+
+
+    glUseProgram(_program);
+
+    GLint finalMatrixLocation = glGetUniformLocation(_program, "finalMatrix");
+    glm::mat4x4 finalMatrix = projectionMatrix2 * viewMatrix;
+    glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix));
+
+
+    for(SpatialObject* so : sos){
+
+        glBindBuffer(GL_ARRAY_BUFFER, _debugVbo);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glUniformMatrix4fv(finalMatrixLocation, 1, false, glm::value_ptr(finalMatrix*so->getTransformationMatrix()));
+
+        glActiveTexture(GL_TEXTURE0);
+        __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "TextureId : %u", so->_textureId);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, so->_textureId);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        glDisableVertexAttribArray(0);
+    }
+
+
 
     glUseProgram(0);
 
@@ -366,21 +360,22 @@ const char* vertexShaderSource =
         "uniform mat4 finalMatrix;\n"
         "void main() {\n"
         "  gl_Position = finalMatrix*position;"
-        "  textureCoords = vec2((position.x+0.5), 1.0-(position.y+0.5)); \n"
+        "  textureCoords = vec2((position.x+0.5), (1.0-(position.y+0.5))); \n"
         "}\0";
 
 // Fragment shader source code
 const char* fragmentShaderSource =
         "#version 300 es\n"
+        "#extension GL_OES_EGL_image_external_essl3 : enable\n"
         "#extension GL_OES_EGL_image_external : enable\n"
         "#extension GL_OES_texture_3D : enable\n"
         "precision mediump float;\n"
-        "uniform sampler2DArray textureSampler;\n" //Change between this and external samplerExternalOES, sampler2D
+        "uniform samplerExternalOES textureSampler;\n" //Change between this and external samplerExternalOES, sampler2D
         "in vec2 textureCoords;\n"
         "out vec4 fragColor;\n"
         "void main() {\n"
         "  fragColor = vec4(0.0, 0.0, 1.0, 1.0);\n"
-        "  fragColor = texture(textureSampler, vec3(textureCoords, 0));\n"
+        "  fragColor = texture(textureSampler, textureCoords);\n"
         //"  gl_FragColor = texture2DArray(textureSampler, textureCoords);\n"
         "}\0";
 
@@ -445,9 +440,20 @@ GLuint GraphicsBackendManager::loadTexture(const char* imagePath) {
     return textureID;
 }
 
-GLuint GraphicsBackendManager::createDisplayTexture(){
+GLuint GraphicsBackendManager::createDisplayTexture(int type){
     GLuint textureID;
     glGenTextures(1, &textureID);
+    if(type == 2){
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureID);
+        glTexImage2D(GL_TEXTURE_EXTERNAL_OES, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    else{
+
+    }
     glBindTexture(DEBUG_TEXTURE_TYPE, textureID);
     //glTexImage2D(DEBUG_TEXTURE_TYPE, 0, GL_RGBA, 1280, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameterf(DEBUG_TEXTURE_TYPE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -515,9 +521,9 @@ void GraphicsBackendManager::InitializeResources() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     //_texture = loadTexture("/storage/emulated/0/test_texture.jpg");
-    _texture1 = createDisplayTexture();
-    _texture2 = createDisplayTexture();
-    _texture3 = createDisplayTexture();
+    _texture1 = createDisplayTexture(1);
+    _texture2 = createDisplayTexture(2);
+    _texture3 = createDisplayTexture(1);
 
 
     GLint textureSamplerLocation = glGetUniformLocation(_program, "textureSampler");
@@ -614,7 +620,7 @@ AHardwareBuffer* debugHardwareBuffer = nullptr;
 bool debugHardwareBufferInited = false;
 
 int GraphicsBackendManager::GetDisplayTexture(int id) {
-    /*switch(id){
+    switch(id){
         case 1:
             return _texture1;
             break;
@@ -624,9 +630,9 @@ int GraphicsBackendManager::GetDisplayTexture(int id) {
         case 3:
             return _texture3;
             break;
-    }*/
+    }
 
-    if(!debugHardwareBufferInited && debugHardwareBuffer != nullptr){
+    /*if(!debugHardwareBufferInited && debugHardwareBuffer != nullptr){
         __android_log_print(ANDROID_LOG_DEBUG, "Androx Kernel3D", "Linking display with hardwarebuffer : %p", debugHardwareBuffer);
 
         EGLClientBuffer eglClientBuffer = eglGetNativeClientBufferANDROID(debugHardwareBuffer);
@@ -640,7 +646,7 @@ int GraphicsBackendManager::GetDisplayTexture(int id) {
         debugHardwareBufferInited = true;
     }
 
-    return _texture1;
+    return _texture1;*/
 }
 
 /*// Initialize the gl extensions. Note we have to open a window.

@@ -454,7 +454,8 @@ void OpenXRPlugin::RenderFrame(std::vector<SpatialObject*> sos, std::vector<XrAp
 
     XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
     frameEndInfo.displayTime = _frameState.predictedDisplayTime;
-    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND; //TODO CHANGE BLEND MODE
+    //frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND; //TODO CHANGE BLEND MODE
+    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
     frameEndInfo.layerCount = (uint32_t)layers.size();
     frameEndInfo.layers = layers.data();
     result = xrEndFrame(_session, &frameEndInfo);
@@ -535,10 +536,11 @@ bool OpenXRPlugin::RenderLayer(XrTime predictedDisplayTime, std::vector<XrCompos
     }
 
     layer.space = _appSpace;
-    layer.layerFlags =
+    /*layer.layerFlags =
             //m_options->Parsed.EnvironmentBlendMode == XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND //TODO CUSTOMIZE
             true ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT | XR_COMPOSITION_LAYER_UNPREMULTIPLIED_ALPHA_BIT
-            : 0;
+            : 0;*/
+    layer.layerFlags = 0; //TODO REMOVE
     layer.viewCount = (uint32_t)projectionLayerViews.size();
     layer.views = projectionLayerViews.data();
     return true;

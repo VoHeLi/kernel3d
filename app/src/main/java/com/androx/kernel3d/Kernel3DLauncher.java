@@ -133,15 +133,15 @@ public class Kernel3DLauncher extends Activity{
     private Handler mHandler;
     private HandlerThread mHandlerThread;
 
-    private int displayWidth = 1920;
-    private int displayHeight = 1080;
+    private int displayWidth = 1280;
+    private int displayHeight = 720;
 
     @RequiresPermission("android.permission.CAPTURE_SECURE_VIDEO_OUTPUT")
     private SurfaceTexture createVirtualDisplay(int textureId, int appId) {
         int width = 480;
         int height = 854;
 
-        if (appId == 1) {
+        if (appId == 2) {
 //            width = 1280;
 //            height = 720;
             width = displayWidth;
@@ -192,19 +192,24 @@ public class Kernel3DLauncher extends Activity{
 
         Log.d("Androx Kernel3D", "Java method called! " + displayTextureId);
 
-        String packageName2 = "com.studio501.canvasrun";
+        String packageName2 = "com.robtopx.geometryjump";
         String packageName3 = "state.balls.io";
         //String packageName1 = "com.robtopx.geometryjump";
         String packageName1 = "com.vrchat.android";
+        //String packageName1 = "com.beatgames.beatsaber";
         //String packageName1 = "cm.aptoide.pt";
         String packageName = "org.dolphinemu.dolphinemu";
         //String packageName1 = "com.miHoYo.GenshinImpact";
 
-        if (appId != 1) return;
+        if (appId != 1 && appId != 2) return;
 
-        //SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId, appId);
 
         packageName = packageName1; //DEBUG
+        if(appId == 2 ){
+            SurfaceTexture surfaceTexture = createVirtualDisplay(displayTextureId, appId);
+            surfaceTexture2 = surfaceTexture;
+            packageName = packageName2;
+        }
 
         /*switch (appId) {
             case 1:
@@ -236,18 +241,29 @@ public class Kernel3DLauncher extends Activity{
 
 
             Log.d("Androx Kernel3D", "Java method C!");
+            int id = -1;
             //int id = mPresentationDisplay.getDisplayId();
-            //int id = 1;
+            if(appId == 2) {
+                id = mPresentationDisplay.getDisplayId();
+            }
+
             //Log.d("Androx Kernel3D", "Java method D! id : " + id);
             ActivityOptions options = ActivityOptions.makeBasic();//.setLaunchDisplayId(id);
+            if(appId == 2) {
+                options = options.setLaunchDisplayId(id);
+                intent.putExtra("android.intent.extra.DISPLAY_ID", id);
+            }
             //options.setLaunchDisplayId(id);
             //intent.putExtra("android.intent.extra.DISPLAY_ID", id);
 
-            //Thread.sleep(10000);
+            Thread.sleep(1000);
             intent.putExtra("AndroxUnstoppable", true);
             getIntent().putExtra("AndroxUnstoppable", true);
 
-            mirageCreateAppListener();
+            if(appId == 1) {
+                mirageCreateAppListener();
+            }
+
             //getIntent().putExtra("MirageAppListenerFD", fd);
 
             Log.d("Androx Kernel3D", "launching App!");
@@ -278,37 +294,39 @@ public class Kernel3DLauncher extends Activity{
     public void updateDisplayTexture(boolean pinching, float cx, float cy) {
 
         //DEBUG
-        return;
+        //return;
 
         //Log.d("Androx Kernel3D", "CX : " + cx +" CY : " + cy);
 
         //Touch the screen in the middle
-//        MotionEvent.PointerCoords[] pointerCoordsArr = new MotionEvent.PointerCoords[1];
-//        pointerCoordsArr[0] = new MotionEvent.PointerCoords();
-//        pointerCoordsArr[0].x = displayHeight * cx + displayWidth/2;
-//        pointerCoordsArr[0].y = displayHeight - (displayHeight * cy + displayHeight/2);
-//        pointerCoordsArr[0].pressure = 1.0f;
-//        pointerCoordsArr[0].size = 1.0f;
-//        int currentAction = getCurrentAction(pinching);
-//
-//        MotionEvent.PointerProperties[] arr1 = new MotionEvent.PointerProperties[1];
-//        MotionEvent.PointerProperties pointerProperties = new MotionEvent.PointerProperties();
-//        pointerProperties.toolType = 1;
-//        pointerProperties.id = MotionEvent.ACTION_BUTTON_RELEASE; //MotionEvent.ACTION_BUTTON_RELEASE
-//        arr1[0] = pointerProperties;
-//
-//        MotionEvent obtain = MotionEvent.obtain(this.downTime, SystemClock.uptimeMillis(), currentAction, 1, arr1, pointerCoordsArr, 0, 0, 1.0f, 1.0f, 0, 0, 4098, 0);
-//
-//        try {
-//            obtain.getClass().getDeclaredMethod("setLynxDisplayId", new Class[]{Integer.TYPE}).invoke(obtain, new Object[]{Integer.valueOf(mVirtualDisplay.getDisplay().getDisplayId())});
-//            ((Boolean) this.im.getClass().getDeclaredMethod("injectInputEvent", new Class[]{InputEvent.class, Integer.TYPE}).invoke(this.im, new Object[]{obtain, 1})).booleanValue();
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//
-//        this.lastAction = currentAction;
+        MotionEvent.PointerCoords[] pointerCoordsArr = new MotionEvent.PointerCoords[1];
+        pointerCoordsArr[0] = new MotionEvent.PointerCoords();
+        pointerCoordsArr[0].x = displayHeight * cx + displayWidth/2;
+        pointerCoordsArr[0].y = displayHeight - (displayHeight * cy + displayHeight/2);
+        pointerCoordsArr[0].pressure = 1.0f;
+        pointerCoordsArr[0].size = 1.0f;
+        int currentAction = getCurrentAction(pinching);
+
+        MotionEvent.PointerProperties[] arr1 = new MotionEvent.PointerProperties[1];
+        MotionEvent.PointerProperties pointerProperties = new MotionEvent.PointerProperties();
+        pointerProperties.toolType = 1;
+        pointerProperties.id = MotionEvent.ACTION_BUTTON_RELEASE; //MotionEvent.ACTION_BUTTON_RELEASE
+        arr1[0] = pointerProperties;
+
+        MotionEvent obtain = MotionEvent.obtain(this.downTime, SystemClock.uptimeMillis(), currentAction, 1, arr1, pointerCoordsArr, 0, 0, 1.0f, 1.0f, 0, 0, 4098, 0);
+
+        try {
+            obtain.getClass().getDeclaredMethod("setLynxDisplayId", new Class[]{Integer.TYPE}).invoke(obtain, new Object[]{Integer.valueOf(mVirtualDisplay.getDisplay().getDisplayId())});
+            ((Boolean) this.im.getClass().getDeclaredMethod("injectInputEvent", new Class[]{InputEvent.class, Integer.TYPE}).invoke(this.im, new Object[]{obtain, 1})).booleanValue();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        this.lastAction = currentAction;
+
+        surfaceTexture2.updateTexImage();
+
         //Update surfaces
         //surfaceTexture1.updateTexImage();
         /*surfaceTexture2.updateTexImage();

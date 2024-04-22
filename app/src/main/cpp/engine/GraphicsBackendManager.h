@@ -50,7 +50,7 @@ private:
 
     const uint32_t GetDepthTexture(const uint32_t colorTexture);
     GLuint loadTexture(const char* imagePath);
-    GLuint createDisplayTexture();
+    GLuint createDisplayTexture(int type);
 
     GLuint _program;
     GLuint _program2D;

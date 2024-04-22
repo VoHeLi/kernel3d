@@ -40,6 +40,7 @@
         <package android:name="state.balls.io" />
         <package android:name="com.robtopx.geometryjump" />
         <package android:name="com.vrchat.android" />
+        <package android:name="com.beatgames.beatsaber" />
         <package android:name="cm.aptoide.pt"/>
         <package android:name="com.miHoYo.GenshinImpact"/>
 
